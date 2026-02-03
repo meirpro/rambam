@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="Track your daily Rambam (3 chapters) study with swipeable cards">
+  <meta name="theme-color" content="#2563eb">
+  <title>רמב"ם יומי</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Noto Sans Hebrew', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+      color: #1f2937;
+      -webkit-font-smoothing: antialiased;
+      touch-action: pan-y;
+    }
+
+    .container {
+      max-width: 640px;
+      margin: 0 auto;
+      min-height: 100vh;
+      background: #ffffff;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Header */
+    header {
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      color: white;
+      padding: 1.25rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      position: sticky;
+      top: 0;
+      z-index: 101;
+    }
+
+    .header-content {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .settings-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
+      font-size: 1.5rem;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+
+    .settings-btn:active {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    /* Stats Bar */
+    .stats {
+      background: #f9fafb;
+      padding: 1rem;
+      display: flex;
+      justify-content: space-around;
+      border-bottom: 2px solid #e5e7eb;
+      gap: 0.5rem;
+      position: sticky;
+      top: 72px;
+      z-index: 100;
+    }
+
+    .stat {
+      text-align: center;
+      flex: 1;
+    }
+
+    .stat-value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: #2563eb;
+      display: block;
+    }
+
+    .stat-label {
+      font-size: 0.875rem;
+      color: #6b7280;
+      margin-top: 0.25rem;
+    }
+
+    /* Main Content */
+    main {
+      padding: 1rem;
+      padding-bottom: 2rem;
+    }
+
+    .day-group {
+      margin-bottom: 1rem;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      overflow: hidden;
+      background: white;
+    }
+
+    .day-group.completed {
+      opacity: 0.6;
+      border-color: #10b981;
+    }
+
+    summary {
+      padding: 1rem;
+      cursor: pointer;
+      list-style: none;
+      background: linear-gradient(to bottom, #ffffff, #f9fafb);
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: #1f2937;
+      border-bottom: 1px solid #e5e7eb;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+
+    summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .day-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex: 1;
+    }
+
+    .day-arrow {
+      color: #6b7280;
+      transition: transform 0.2s;
+      font-size: 1rem;
+      line-height: 1;
+    }
+
+    details[open] .day-arrow {
+      transform: rotate(-90deg);
+    }
+
+    .day-info {
+      flex: 1;
+    }
+
+    .day-actions {
+      display: flex;
+      gap: 0.25rem;
+      align-items: center;
+    }
+
+    .day-action-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.5rem;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+      font-size: 1.25rem;
+      line-height: 1;
+      color: #9ca3af;
+      width: 36px;
+      height: 36px;
+    }
+
+    .day-action-btn.reset {
+      font-size: 1.5rem;
+    }
+
+    .day-action-btn:hover {
+      background: rgba(0, 0, 0, 0.05);
+      color: #6b7280;
+    }
+
+    .day-action-btn:active {
+      background: rgba(0, 0, 0, 0.1);
+      color: #4b5563;
+    }
+
+    summary:active {
+      background: #f3f4f6;
+    }
+
+    .day-meta {
+      font-size: 0.875rem;
+      color: #6b7280;
+      margin-top: 0.25rem;
+    }
+
+    .cards-container {
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 2rem;
+      color: #6b7280;
+      font-style: italic;
+    }
+
+    /* Halakha Cards */
+    .halakha-card {
+      background: white;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 1rem;
+      font-size: 1.125rem;
+      line-height: 1.8;
+      color: #1f2937;
+      position: relative;
+      transition: transform 0.3s, opacity 0.3s, box-shadow 0.2s;
+      touch-action: pan-y;
+      cursor: grab;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .halakha-card:active {
+      cursor: grabbing;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .halakha-card.swiping {
+      transition: none;
+    }
+
+    .halakha-card.removing {
+      opacity: 0;
+      transform: translateX(120%);
+    }
+
+    .halakha-text {
+      text-align: justify;
+    }
+
+    .halakha-text b {
+      font-weight: 700;
+      color: #1f2937;
+    }
+
+    .halakha-text small {
+      font-size: 0.9em;
+      color: #6b7280;
+    }
+
+    /* Settings Panel */
+    .settings-panel {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      max-width: 400px;
+      height: 100vh;
+      background: white;
+      box-shadow: 4px 0 16px rgba(0, 0, 0, 0.2);
+      transform: translateX(-100%);
+      transition: transform 0.3s;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .settings-panel.open {
+      transform: translateX(0);
+    }
+
+    .settings-header {
+      background: #2563eb;
+      color: white;
+      padding: 1.25rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .settings-header h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1.75rem;
+      cursor: pointer;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+    }
+
+    .close-btn:active {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .settings-content {
+      padding: 0;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .settings-section {
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .settings-label {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #374151;
+    }
+
+    .date-input {
+      padding: 0.75rem;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-family: inherit;
+      width: 100%;
+    }
+
+    .btn {
+      border: 1px solid #d1d5db;
+      padding: 0.75rem 1rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      border-radius: 6px;
+      cursor: pointer;
+      width: 100%;
+      transition: all 0.2s;
+      background: white;
+      color: #374151;
+    }
+
+    .btn:hover {
+      background: #f9fafb;
+      border-color: #9ca3af;
+    }
+
+    .btn:active {
+      background: #f3f4f6;
+    }
+
+    .btn-primary {
+      background: #eff6ff;
+      border-color: #2563eb;
+      color: #2563eb;
+    }
+
+    .btn-primary:hover {
+      background: #dbeafe;
+    }
+
+    .btn-primary:active {
+      background: #bfdbfe;
+    }
+
+    .btn-danger {
+      background: #fef2f2;
+      border-color: #dc2626;
+      color: #dc2626;
+    }
+
+    .btn-danger:hover {
+      background: #fee2e2;
+    }
+
+    .btn-danger:active {
+      background: #fecaca;
+    }
+
+    .settings-warning {
+      color: #6b7280;
+      font-size: 0.875rem;
+      text-align: center;
+    }
+
+    /* Overlay */
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+      z-index: 999;
+    }
+
+    .overlay.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1.5rem;
+      color: #6b7280;
+    }
+
+    .empty-state-icon {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+    }
+
+    .empty-state-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #1f2937;
+      margin-bottom: 0.5rem;
+    }
+
+    .empty-state-text {
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+
+    .dedication {
+      background: #fef3c7;
+      padding: 1rem;
+      text-align: center;
+      font-size: 0.875rem;
+      color: #92400e;
+      font-weight: 500;
+    }
+
+    .dedication b {
+      font-weight: 700;
+    }
+
+    .footer {
+      background: #f9fafb;
+      padding: 1.5rem 1.5rem 1rem;
+      text-align: center;
+      font-size: 0.875rem;
+      color: #6b7280;
+    }
+
+    .footer-content {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      line-height: 1.6;
+    }
+
+    .footer-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.375rem 0.625rem;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      background: white;
+    }
+
+    .footer-avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .footer-link {
+      color: inherit;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .footer-link:hover {
+      opacity: 0.8;
+    }
+
+    .claude-icon {
+      width: 18px;
+      height: 18px;
+      vertical-align: middle;
+    }
+
+    .whatsapp-icon {
+      width: 16px;
+      height: 16px;
+      vertical-align: middle;
+    }
+
+    .settings-dedication {
+      background: #fef3c7;
+      padding: 1rem;
+      text-align: center;
+      font-size: 0.875rem;
+      color: #92400e;
+      font-weight: 500;
+      margin-top: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="header-content">
+        <img src="logo.png" alt="Logo" class="logo">
+        <h1>רמב"ם יומי</h1>
+      </div>
+      <button class="settings-btn" id="settingsBtn" aria-label="הגדרות">⚙</button>
+    </header>
+
+    <div class="stats">
+      <div class="stat">
+        <span class="stat-value" id="completedDaysValue">0/0</span>
+        <div class="stat-label">ימים שלמדתי</div>
+      </div>
+      <div class="stat">
+        <span class="stat-value" id="todayValue">0%</span>
+        <div class="stat-label">היום</div>
+      </div>
+      <div class="stat">
+        <span class="stat-value" id="backlogValue">0</span>
+        <div class="stat-label">הלכות להשלים</div>
+      </div>
+    </div>
+
+    <main id="mainContent"></main>
+  </div>
+
+  <div class="overlay" id="overlay"></div>
+
+  <div class="settings-panel" id="settingsPanel">
+    <div class="settings-header">
+      <h2>הגדרות</h2>
+      <button class="close-btn" id="closeBtn" aria-label="סגור">×</button>
+    </div>
+    <div class="settings-content">
+      <div class="settings-section">
+        <label class="settings-label">תאריך התחלה</label>
+        <input type="date" class="date-input" id="startDateInput">
+        <button class="btn btn-primary" id="setCycleBtn">קבע לט״ו שבט ה׳תשפ״ו (תחילת המחזור ה-46)</button>
+      </div>
+
+      <div class="settings-section">
+        <p class="settings-warning">⚠️ פעולה זו תמחק את כל ההתקדמות שלך</p>
+        <button class="btn btn-danger" id="resetBtn">איפוס מלא</button>
+      </div>
+
+      <div class="settings-dedication">
+        לעילוי נשמת <b>ישראל שאול</b> בן <b>משה אהרון</b> ו<b>מלכה</b> בת <b>נתן</b>
+      </div>
+
+      <footer class="footer">
+        <div class="footer-content">
+          <span>נבנה באמצעות</span>
+          <div class="footer-badge">
+            <img src="claude.jpeg" alt="Claude" class="claude-icon">
+            <span style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Claude</span>
+          </div>
+        </div>
+        <div class="footer-content" style="margin-top: 0.5rem;">
+          <span>עם הכוונה, רעיון ותמיכה של</span>
+          <a href="https://wa.me/972586030770?text=אהבתי%20את%20האפליקציה%20של%20הרמבם" class="footer-link" target="_blank" rel="noopener" aria-label="שלח הודעה בוואטסאפ">
+            <div class="footer-badge">
+              <img src="rabbi.jpeg" alt="הרב שוקי" class="footer-avatar">
+              <span>הרב שוקי</span>
+              <svg class="whatsapp-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" fill="#25D366"/>
+              </svg>
+            </div>
+          </a>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <script>
+    // ============================================================================
+    // Constants & State
+    // ============================================================================
+    const SEFARIA_API = 'https://www.sefaria.org';
+    const textCache = new Map(); // In-memory cache for halakha texts
+
+    // ============================================================================
+    // LocalStorage Utilities
+    // ============================================================================
+    function getStart() {
+      const stored = localStorage.getItem('rambam_start');
+      if (stored) return stored;
+      const today = getTodayInIsrael();
+      localStorage.setItem('rambam_start', today);
+      return today;
+    }
+
+    function setStart(dateStr) {
+      localStorage.setItem('rambam_start', dateStr);
+    }
+
+    function getTodayInIsrael() {
+      // Get current time in Israel timezone (Asia/Jerusalem)
+      const now = new Date();
+      const israelTimeStr = now.toLocaleString('en-US', { timeZone: 'Asia/Jerusalem' });
+      const israelTime = new Date(israelTimeStr);
+      const hour = israelTime.getHours();
+
+      // Jewish day starts at sunset (approx 6 PM / 18:00)
+      // Between 6 PM and midnight = next Jewish day
+      // Between midnight and 6 PM = current Jewish day
+      let jewishDate = new Date(israelTime);
+
+      if (hour < 18) {
+        // Before 6 PM - still in previous Jewish day
+        // No adjustment needed, use current calendar date
+      } else {
+        // After 6 PM - advance to next Jewish day
+        jewishDate.setDate(jewishDate.getDate() + 1);
+      }
+
+      const year = jewishDate.getFullYear();
+      const month = String(jewishDate.getMonth() + 1).padStart(2, '0');
+      const day = String(jewishDate.getDate()).padStart(2, '0');
+
+      return `${year}-${month}-${day}`;
+    }
+
+    function getDays() {
+      const stored = localStorage.getItem('rambam_days');
+      return stored ? JSON.parse(stored) : {};
+    }
+
+    function saveDays(days) {
+      localStorage.setItem('rambam_days', JSON.stringify(days));
+    }
+
+    function getDone() {
+      const stored = localStorage.getItem('rambam_done');
+      return stored ? JSON.parse(stored) : {};
+    }
+
+    function saveDone(done) {
+      localStorage.setItem('rambam_done', JSON.stringify(done));
+    }
+
+    function markDone(date, index) {
+      const done = getDone();
+      done[`${date}:${index}`] = new Date().toISOString();
+      saveDone(done);
+    }
+
+    // ============================================================================
+    // Date Utilities
+    // ============================================================================
+    function dateRange(start, end) {
+      const dates = [];
+      const current = new Date(start);
+      const endDate = new Date(end);
+      while (current <= endDate) {
+        dates.push(current.toISOString().split('T')[0]);
+        current.setDate(current.getDate() + 1);
+      }
+      return dates;
+    }
+
+    function formatHebrewDate(dateStr) {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      return `${d}/${m}/${y}`;
+    }
+
+    function toHebrewLetter(num) {
+      const ones = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט'];
+      const tens = ['', 'י', 'כ', 'ל', 'מ', 'נ', 'ס', 'ע', 'פ', 'צ'];
+      const hundreds = ['', 'ק', 'ר', 'ש', 'ת'];
+
+      if (num < 1) return '';
+
+      let result = '';
+
+      // Hundreds
+      const hundred = Math.floor(num / 100);
+      if (hundred > 0 && hundred < hundreds.length) {
+        result += hundreds[hundred];
+      }
+
+      // Tens and ones
+      const remainder = num % 100;
+
+      // Handle 15 and 16 specially (טו, טז instead of יה, יו which spell God's name)
+      if (remainder === 15) {
+        result += 'טו';
+      } else if (remainder === 16) {
+        result += 'טז';
+      } else if (remainder > 0) {
+        if (remainder < 10) {
+          result += ones[remainder - 1];
+        } else {
+          const ten = Math.floor(remainder / 10);
+          const one = remainder % 10;
+          result += tens[ten];
+          if (one > 0) {
+            result += ones[one - 1];
+          }
+        }
+      }
+
+      return result || num.toString();
+    }
+
+    // ============================================================================
+    // Sefaria API
+    // ============================================================================
+    async function fetchCalendar(dateStr) {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const url = `${SEFARIA_API}/api/calendars?day=${d}&month=${m}&year=${y}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Calendar API failed: ${res.status}`);
+      const data = await res.json();
+
+      const rambam = data.calendar_items.find(item =>
+        item.title.en === 'Daily Rambam (3 Chapters)'
+      );
+
+      if (!rambam) throw new Error('No Rambam entry found');
+
+      return {
+        he: rambam.displayValue.he,
+        ref: rambam.ref
+      };
+    }
+
+    async function fetchText(ref) {
+      if (textCache.has(ref)) {
+        return textCache.get(ref);
+      }
+
+      const url = `${SEFARIA_API}/api/v3/texts/${ref}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Text API failed: ${res.status}`);
+      const data = await res.json();
+
+      let halakhot = [];
+      const text = data.versions[0].text;
+
+      if (data.isSpanning) {
+        // Flatten chapters × halakhot array
+        halakhot = text.flat();
+      } else if (Array.isArray(text)) {
+        halakhot = text;
+      } else {
+        halakhot = [text];
+      }
+
+      textCache.set(ref, halakhot);
+      return halakhot;
+    }
+
+    // ============================================================================
+    // Data Loading
+    // ============================================================================
+    async function loadMissingDays() {
+      const start = getStart();
+      const today = getTodayInIsrael();
+      const allDates = dateRange(start, today);
+      const days = getDays();
+
+      const missing = allDates.filter(date => !days[date]);
+      if (missing.length === 0) return;
+
+      // Fetch all missing dates in parallel
+      const results = await Promise.allSettled(
+        missing.map(async (date) => {
+          const { he, ref } = await fetchCalendar(date);
+          const halakhot = await fetchText(ref);
+          return { date, he, ref, count: halakhot.length };
+        })
+      );
+
+      results.forEach((result, i) => {
+        if (result.status === 'fulfilled') {
+          const { date, he, ref, count } = result.value;
+          days[date] = { he, ref, count };
+        } else {
+          console.error(`Failed to load ${missing[i]}:`, result.reason);
+        }
+      });
+
+      saveDays(days);
+    }
+
+    // ============================================================================
+    // Stats Computation
+    // ============================================================================
+    function computeStats() {
+      const days = getDays();
+      const done = getDone();
+      const today = getTodayInIsrael();
+
+      // Completed days: count how many days have been fully completed
+      let completedDays = 0;
+      let totalDays = 0;
+
+      Object.keys(days).forEach(date => {
+        if (date <= today) {
+          totalDays++;
+          const dayData = days[date];
+          const doneCount = Object.keys(done).filter(key =>
+            key.startsWith(`${date}:`)
+          ).length;
+
+          if (doneCount >= dayData.count) {
+            completedDays++;
+          }
+        }
+      });
+
+      // Today percentage
+      const todayData = days[today];
+      let todayPercent = 0;
+      if (todayData) {
+        const todayDone = Object.keys(done).filter(key =>
+          key.startsWith(`${today}:`)
+        ).length;
+        todayPercent = Math.round((todayDone / todayData.count) * 100);
+      }
+
+      // Backlog: sum of incomplete halakhot before today (not including today)
+      let backlog = 0;
+      Object.keys(days).forEach(date => {
+        if (date < today) {
+          const dayData = days[date];
+          const doneCount = Object.keys(done).filter(key =>
+            key.startsWith(`${date}:`)
+          ).length;
+          const remaining = dayData.count - doneCount;
+          if (remaining > 0) {
+            backlog += remaining;
+          }
+        }
+      });
+
+      return { completedDays, totalDays, todayPercent, backlog };
+    }
+
+    function renderStats() {
+      const { completedDays, totalDays, todayPercent, backlog } = computeStats();
+      document.getElementById('completedDaysValue').textContent = `${completedDays}/${totalDays}`;
+      document.getElementById('todayValue').textContent = `${todayPercent}%`;
+      document.getElementById('backlogValue').textContent = backlog;
+    }
+
+    // ============================================================================
+    // Rendering
+    // ============================================================================
+    function renderDays() {
+      const days = getDays();
+      const done = getDone();
+      const today = getTodayInIsrael();
+      const start = getStart();
+
+      const allDates = dateRange(start, today).reverse(); // Today first
+      const mainContent = document.getElementById('mainContent');
+
+      if (allDates.length === 0) {
+        mainContent.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📚</div>
+            <div class="empty-state-title">ברוכים הבאים!</div>
+            <div class="empty-state-text">טוען את הלימוד היומי שלך...</div>
+          </div>
+        `;
+        return;
+      }
+
+      mainContent.innerHTML = '';
+
+      allDates.forEach(date => {
+        const dayData = days[date];
+        if (!dayData) return;
+
+        const doneCount = Object.keys(done).filter(key =>
+          key.startsWith(`${date}:`)
+        ).length;
+        const isComplete = doneCount >= dayData.count;
+
+        // Don't skip any days - show all days (complete or incomplete)
+
+        const details = document.createElement('details');
+        details.className = `day-group ${isComplete ? 'completed' : ''}`;
+        details.dataset.date = date;
+        details.dataset.ref = dayData.ref;
+
+        const isToday = date === today;
+        const dateLabel = isToday ? 'היום' : formatHebrewDate(date);
+
+        details.innerHTML = `
+          <summary>
+            <div class="day-header">
+              <span class="day-arrow">◀</span>
+              <div class="day-info">
+                <div>${dayData.he}</div>
+                <div class="day-meta">${dateLabel} • ${doneCount}/${dayData.count}</div>
+              </div>
+            </div>
+            <div class="day-actions">
+              <button class="day-action-btn check" data-action="complete" data-date="${date}" title="סמן הכל כהושלם" aria-label="סמן הכל כהושלם">✓</button>
+              <button class="day-action-btn reset" data-action="reset" data-date="${date}" title="אפס יום" aria-label="אפס יום">↺</button>
+            </div>
+          </summary>
+          <div class="cards-container" data-date="${date}"></div>
+        `;
+
+        mainContent.appendChild(details);
+      });
+
+      // Attach listeners to details elements
+      document.querySelectorAll('details').forEach(details => {
+        details.addEventListener('toggle', handleDetailsToggle);
+      });
+
+      // Attach listeners to action buttons
+      document.querySelectorAll('.day-action-btn').forEach(btn => {
+        btn.addEventListener('click', handleDayAction);
+      });
+    }
+
+    function handleDayAction(event) {
+      event.stopPropagation(); // Prevent summary toggle
+      const btn = event.currentTarget;
+      const action = btn.dataset.action;
+      const date = btn.dataset.date;
+      const days = getDays();
+      const dayData = days[date];
+
+      if (!dayData) return;
+
+      if (action === 'reset') {
+        if (!confirm(`האם לאפס את כל ההתקדמות של ${dayData.he}?`)) return;
+
+        // Remove all done entries for this date
+        const done = getDone();
+        Object.keys(done).forEach(key => {
+          if (key.startsWith(`${date}:`)) {
+            delete done[key];
+          }
+        });
+        saveDone(done);
+
+        // Refresh the display
+        renderDays();
+        renderStats();
+      } else if (action === 'complete') {
+        if (!confirm(`האם לסמן את כל ${dayData.he} כהושלם?`)) return;
+
+        // Mark all halakhot as done
+        const done = getDone();
+        for (let i = 0; i < dayData.count; i++) {
+          done[`${date}:${i}`] = new Date().toISOString();
+        }
+        saveDone(done);
+
+        // Refresh the display
+        renderDays();
+        renderStats();
+      }
+    }
+
+    async function handleDetailsToggle(event) {
+      const details = event.target;
+      if (!details.open) return;
+
+      const date = details.dataset.date;
+      const ref = details.dataset.ref;
+      const container = details.querySelector('.cards-container');
+
+      if (container.children.length > 0) return; // Already loaded
+
+      container.innerHTML = '<div class="loading">טוען הלכות...</div>';
+
+      try {
+        const halakhot = await fetchText(ref);
+        const done = getDone();
+
+        container.innerHTML = '';
+
+        halakhot.forEach((text, index) => {
+          const isDone = done[`${date}:${index}`];
+          if (isDone) return; // Skip completed halakhot
+
+          const card = document.createElement('div');
+          card.className = 'halakha-card';
+          card.dataset.date = date;
+          card.dataset.index = index;
+
+          const hebrewNum = toHebrewLetter(index + 1);
+          card.innerHTML = `
+            <div class="halakha-text"><b>${hebrewNum}.</b> ${text}</div>
+          `;
+
+          attachSwipeHandler(card);
+          container.appendChild(card);
+        });
+
+        if (container.children.length === 0) {
+          container.innerHTML = '<div class="loading">✅ הושלם!</div>';
+        }
+      } catch (error) {
+        console.error('Failed to load halakhot:', error);
+        container.innerHTML = '<div class="loading">❌ שגיאה בטעינה</div>';
+      }
+    }
+
+    // ============================================================================
+    // Swipe Gesture
+    // ============================================================================
+    function attachSwipeHandler(card) {
+      let startX = 0;
+      let startY = 0;
+      let currentX = 0;
+      let currentY = 0;
+      let isSwiping = false;
+      let isMouseDown = false;
+
+      // Touch events (mobile)
+      card.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        currentX = startX;
+        currentY = startY;
+        isSwiping = false;
+        card.classList.add('swiping');
+      }, { passive: true });
+
+      card.addEventListener('touchmove', (e) => {
+        currentX = e.touches[0].clientX;
+        currentY = e.touches[0].clientY;
+        const deltaX = currentX - startX;
+        const deltaY = currentY - startY;
+
+        if (!isSwiping && Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
+          isSwiping = true;
+        }
+
+        if (isSwiping) {
+          e.preventDefault();
+          if (deltaX > 0) {
+            card.style.transform = `translateX(${deltaX}px)`;
+            card.style.opacity = 1 - (deltaX / 300);
+          }
+        }
+      }, { passive: false });
+
+      card.addEventListener('touchend', handleEnd, { passive: true });
+
+      // Mouse events (desktop)
+      card.addEventListener('mousedown', (e) => {
+        isMouseDown = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        currentX = startX;
+        currentY = startY;
+        isSwiping = false;
+        card.classList.add('swiping');
+        e.preventDefault();
+      });
+
+      card.addEventListener('mousemove', (e) => {
+        if (!isMouseDown) return;
+
+        currentX = e.clientX;
+        currentY = e.clientY;
+        const deltaX = currentX - startX;
+        const deltaY = currentY - startY;
+
+        if (!isSwiping && Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
+          isSwiping = true;
+        }
+
+        if (isSwiping && deltaX > 0) {
+          card.style.transform = `translateX(${deltaX}px)`;
+          card.style.opacity = 1 - (deltaX / 300);
+        }
+      });
+
+      card.addEventListener('mouseup', handleEnd);
+      card.addEventListener('mouseleave', handleEnd);
+
+      function handleEnd() {
+        if (!isSwiping && !isMouseDown) {
+          card.classList.remove('swiping');
+          currentX = 0;
+          currentY = 0;
+          return;
+        }
+
+        card.classList.remove('swiping');
+        isMouseDown = false;
+
+        const deltaX = currentX - startX;
+
+        if (isSwiping && deltaX > 100) {
+          card.classList.add('removing');
+
+          setTimeout(() => {
+            const date = card.dataset.date;
+            const index = parseInt(card.dataset.index);
+            markDone(date, index);
+            card.remove();
+            renderStats();
+
+            const container = card.parentElement;
+            if (container && container.children.length === 0) {
+              container.innerHTML = '<div class="loading">✅ הושלם!</div>';
+            }
+          }, 300);
+        } else {
+          card.style.transform = '';
+          card.style.opacity = '';
+        }
+
+        isSwiping = false;
+        currentX = 0;
+        currentY = 0;
+      }
+    }
+
+    // ============================================================================
+    // Settings
+    // ============================================================================
+    document.getElementById('settingsBtn').addEventListener('click', () => {
+      document.getElementById('settingsPanel').classList.add('open');
+      document.getElementById('overlay').classList.add('visible');
+    });
+
+    function closeSettings() {
+      document.getElementById('settingsPanel').classList.remove('open');
+      document.getElementById('overlay').classList.remove('visible');
+    }
+
+    document.getElementById('closeBtn').addEventListener('click', closeSettings);
+    document.getElementById('overlay').addEventListener('click', closeSettings);
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      if (confirm('האם אתה בטוח? כל ההתקדמות תימחק.')) {
+        localStorage.clear();
+        location.reload();
+      }
+    });
+
+    // Set start date input value
+    const startDateInput = document.getElementById('startDateInput');
+    startDateInput.value = getStart();
+
+    startDateInput.addEventListener('change', (e) => {
+      const newStart = e.target.value;
+      if (confirm(`האם לשנות את תאריך ההתחלה ל-${newStart}? זה עלול לאפס את ההתקדמות.`)) {
+        setStart(newStart);
+        location.reload();
+      } else {
+        e.target.value = getStart();
+      }
+    });
+
+    document.getElementById('setCycleBtn').addEventListener('click', () => {
+      if (confirm('האם לקבוע את תאריך ההתחלה לט״ו שבט ה׳תשפ״ו (3 בפברואר 2026)?')) {
+        setStart('2026-02-03');
+        location.reload();
+      }
+    });
+
+    // ============================================================================
+    // Service Worker Registration
+    // ============================================================================
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js')
+          .then(reg => console.log('Service Worker registered:', reg.scope))
+          .catch(err => console.error('Service Worker registration failed:', err));
+      });
+    }
+
+    // ============================================================================
+    // App Initialization
+    // ============================================================================
+    async function init() {
+      try {
+        await loadMissingDays();
+        renderDays();
+        renderStats();
+
+        // Auto-open today's section if not completed
+        const today = getTodayInIsrael();
+        const days = getDays();
+        const done = getDone();
+        const todayData = days[today];
+
+        if (todayData) {
+          const todayDone = Object.keys(done).filter(key =>
+            key.startsWith(`${today}:`)
+          ).length;
+
+          if (todayDone < todayData.count) {
+            // Find and open today's details element
+            const todayDetails = document.querySelector(`details[data-date="${today}"]`);
+            if (todayDetails) {
+              todayDetails.open = true;
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Initialization failed:', error);
+        document.getElementById('mainContent').innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">❌</div>
+            <div class="empty-state-title">שגיאה</div>
+            <div class="empty-state-text">לא ניתן לטעון את הנתונים. נסה שוב מאוחר יותר.</div>
+          </div>
+        `;
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

@@ -1,0 +1,172 @@
+# רמב"ם יומי - Daily Rambam Tracker
+
+A Progressive Web App (PWA) for tracking your daily Rambam (3 chapters) study with swipeable halakha cards.
+
+## ✨ Features
+
+- 📱 **Mobile-first PWA** - Install as a native app on any device
+- 🔄 **Swipe to complete** - Swipe halakha cards right to mark as done
+- 📊 **Track progress** - Days studied, today's completion %, and backlog halakhot
+- 💾 **Works offline** - Full offline support with service worker caching
+- 🇮🇱 **RTL Hebrew** - Native right-to-left support with Noto Sans Hebrew font
+- 🕐 **Jewish day logic** - Automatically advances to next day at sunset (6 PM Israel time)
+- 🎯 **Lightweight** - Single HTML file, no build process required
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- A web browser (Chrome, Safari, Firefox, Edge)
+- For local development with PWA features: a local web server
+
+### Running Locally
+
+#### Option 1: Simple File Open
+```bash
+open index.html
+```
+Note: Limited PWA features (no service worker in `file://` protocol)
+
+#### Option 2: Local Server (Recommended)
+```bash
+# Python 3
+python3 -m http.server 8000
+
+# Node.js
+npx serve .
+
+# Then open: http://localhost:8000
+```
+
+### Installing as PWA
+
+1. Open the app in your browser
+2. Look for the "Install" or "Add to Home Screen" prompt
+3. Click install
+4. App icon appears on your home screen/desktop
+
+## 📖 How It Works
+
+### Daily Learning Cycle
+
+The app tracks the **3-chapter daily Rambam cycle** (Mishneh Torah):
+- Fetches daily portions from [Sefaria API](https://www.sefaria.org)
+- Each day includes 3 chapters divided into individual halakhot
+- Started: ט״ו שבט ה׳תשפ״ו (Feb 3, 2026) - Cycle #46
+
+### Jewish Day Logic
+
+Days change at sunset (~6 PM Israel time):
+- 6 PM Monday → Midnight Tuesday = Tuesday in Jewish time
+- Midnight Tuesday → 6 PM Tuesday = Tuesday in Jewish time
+
+### Usage
+
+1. **View Today's Study**: Opens automatically on app load
+2. **Expand a Day**: Click the ▶ arrow to view halakhot
+3. **Complete Halakhot**: Swipe cards right (or drag with mouse) to mark as done
+4. **Track Progress**:
+   - **ימים שלמדתי** - Days completed / Total days
+   - **היום** - Today's completion percentage
+   - **הלכות להשלים** - Halakhot remaining from previous days
+5. **Quick Actions**:
+   - ✓ Mark entire day as complete
+   - ↺ Reset a day's progress
+
+### Settings
+
+- **Start Date**: Change when you began the cycle
+- **Quick Reset**: Set to Feb 3, 2026 (current cycle start)
+- **Full Reset**: Clear all progress and start fresh
+
+## 🏗️ Technical Details
+
+### Tech Stack
+
+- **Pure Vanilla JavaScript** - No frameworks, no dependencies
+- **Service Worker** - Offline-first PWA with caching
+- **LocalStorage** - Client-side data persistence
+- **Sefaria API** - Jewish text database
+- **Noto Sans Hebrew** - Google Fonts for beautiful Hebrew typography
+
+### Data Storage
+
+All data stored in browser `localStorage`:
+
+```javascript
+// Start date
+rambam_start: "2026-02-03"
+
+// Daily metadata
+rambam_days: {
+  "2026-02-03": {
+    he: "מסירת תורה שבעל פה א׳-מ״ה",
+    ref: "Mishneh_Torah,_Transmission_of_the_Oral_Law.1-45",
+    count: 45
+  }
+}
+
+// Completed halakhot
+rambam_done: {
+  "2026-02-03:0": "2026-02-03T09:15:00Z",
+  "2026-02-03:1": "2026-02-03T09:16:00Z"
+}
+```
+
+### File Structure
+
+```
+rambam/
+├── index.html           # Main app (HTML + CSS + JS)
+├── manifest.json        # PWA manifest
+├── service-worker.js    # Offline caching
+├── logo.png            # App logo (scroll icon)
+├── icon-192.png        # PWA icon 192×192
+├── icon-512.png        # PWA icon 512×512
+├── favicon.ico         # Browser favicon
+├── claude.jpeg         # Claude AI icon
+├── rabbi.jpeg          # Rabbi Shuki avatar
+├── PLAN.md             # Implementation plan
+├── QUICK_REFERENCE.md  # API reference
+└── README.md           # This file
+```
+
+## 🎨 Features in Detail
+
+### Hebrew Letter Numbering
+
+Each halakha is numbered with Hebrew letters (א, ב, ג...):
+- Handles special cases: ט״ו and ט״ז (instead of יה, יו)
+- Supports hundreds: ק, קא, קב... etc
+- Resets numbering per chapter
+
+### Swipe Gestures
+
+- **Touch devices**: Swipe right to dismiss
+- **Desktop**: Click and drag right with mouse
+- Threshold: 100px for completion
+- Smooth animations with CSS transitions
+
+### Stats Calculation
+
+- **Days Studied**: Counts all days with 100% completion
+- **Today %**: Completed halakhot / total halakhot today
+- **Backlog**: Sum of incomplete halakhot from all previous days
+
+## 🙏 Credits
+
+**Built with**:
+- [Claude AI](https://claude.ai) - AI pair programming
+- [Sefaria API](https://www.sefaria.org) - Jewish text database
+
+**Created by**: Rabbi Shuki with guidance, ideas, and support
+
+**In Memory Of**: ישראל שאול בן משה אהרון ומלכה בת נתן
+
+## 📄 License
+
+MIT License - Feel free to use and modify for your own study tracking!
+
+## 🐛 Issues & Feedback
+
+Contact via [WhatsApp](https://wa.me/972586030770?text=אהבתי%20את%20האפליקציה%20של%20הרמבם)
