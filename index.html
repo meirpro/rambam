@@ -609,6 +609,85 @@
       line-height: 1.6;
     }
 
+    /* Install Prompt */
+    .install-prompt {
+      position: fixed;
+      bottom: 1rem;
+      left: 1rem;
+      right: 1rem;
+      max-width: 500px;
+      margin: 0 auto;
+      background: white;
+      border: 2px solid #2563eb;
+      border-radius: 12px;
+      padding: 1rem;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+      z-index: 1000;
+      display: none;
+      animation: slideUp 0.3s ease-out;
+    }
+
+    .install-prompt.show {
+      display: block;
+    }
+
+    @keyframes slideUp {
+      from {
+        transform: translateY(100px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .install-prompt-content {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .install-prompt-text {
+      font-size: 0.95rem;
+      color: #1f2937;
+      font-weight: 500;
+    }
+
+    .install-prompt-buttons {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .install-prompt-btn {
+      flex: 1;
+      padding: 0.75rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .install-prompt-btn.primary {
+      background: #2563eb;
+      color: white;
+    }
+
+    .install-prompt-btn.primary:active {
+      background: #1d4ed8;
+    }
+
+    .install-prompt-btn.secondary {
+      background: #f3f4f6;
+      color: #6b7280;
+    }
+
+    .install-prompt-btn.secondary:active {
+      background: #e5e7eb;
+    }
+
     .dedication {
       background: #fef3c7;
       padding: 1rem;
@@ -770,6 +849,13 @@
       </div>
       <div class="header-actions">
         <input type="date" class="header-date-picker" id="headerDatePicker" aria-label="בחר תאריך">
+        <button class="header-btn" id="installHeaderBtn" aria-label="התקן אפליקציה" style="display: none;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+        </button>
         <button class="header-btn" id="calendarBtn" aria-label="בחר תאריך">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -801,6 +887,18 @@
   </div>
 
   <div class="overlay" id="overlay"></div>
+
+  <div class="install-prompt" id="installPrompt">
+    <div class="install-prompt-content">
+      <div class="install-prompt-text">
+        💡 התקן את האפליקציה למסך הבית לגישה מהירה ושימוש ללא אינטרנט!
+      </div>
+      <div class="install-prompt-buttons">
+        <button class="install-prompt-btn primary" id="installBtn">התקן</button>
+        <button class="install-prompt-btn secondary" id="dismissInstallBtn">אולי מאוחר יותר</button>
+      </div>
+    </div>
+  </div>
 
   <div class="settings-panel" id="settingsPanel">
     <div class="settings-header">
@@ -2049,6 +2147,86 @@
         btn.addEventListener('click', handleDayAction);
       });
     }
+
+    // ============================================================================
+    // PWA Install Prompt
+    // ============================================================================
+    let deferredPrompt;
+
+    function showInstallButton() {
+      const installHeaderBtn = document.getElementById('installHeaderBtn');
+      if (installHeaderBtn) {
+        installHeaderBtn.style.display = '';
+      }
+    }
+
+    function hideInstallButton() {
+      const installHeaderBtn = document.getElementById('installHeaderBtn');
+      if (installHeaderBtn) {
+        installHeaderBtn.style.display = 'none';
+      }
+    }
+
+    async function triggerInstall() {
+      if (!deferredPrompt) return;
+
+      // Show the install prompt
+      deferredPrompt.prompt();
+
+      // Wait for the user to respond to the prompt
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log(`User response to the install prompt: ${outcome}`);
+
+      if (outcome === 'accepted') {
+        hideInstallButton();
+      }
+
+      // Clear the deferredPrompt
+      deferredPrompt = null;
+    }
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      // Prevent the mini-infobar from appearing on mobile
+      e.preventDefault();
+      // Save the event so it can be triggered later
+      deferredPrompt = e;
+
+      // Show install button in header
+      showInstallButton();
+
+      // Show install prompt after user has interacted with the app
+      // Don't show on first visit
+      if (!isFirstVisit()) {
+        const installPromptShown = localStorage.getItem('install_prompt_shown');
+        if (!installPromptShown) {
+          setTimeout(() => {
+            document.getElementById('installPrompt').classList.add('show');
+          }, 3000); // Show after 3 seconds
+        }
+      }
+    });
+
+    // Check if already installed
+    window.addEventListener('appinstalled', () => {
+      hideInstallButton();
+      deferredPrompt = null;
+    });
+
+    // Header install button
+    document.getElementById('installHeaderBtn').addEventListener('click', triggerInstall);
+
+    // Prompt install button
+    document.getElementById('installBtn').addEventListener('click', async () => {
+      await triggerInstall();
+      // Hide the prompt
+      document.getElementById('installPrompt').classList.remove('show');
+      localStorage.setItem('install_prompt_shown', 'true');
+    });
+
+    document.getElementById('dismissInstallBtn').addEventListener('click', () => {
+      document.getElementById('installPrompt').classList.remove('show');
+      localStorage.setItem('install_prompt_shown', 'true');
+    });
 
     // ============================================================================
     // Service Worker Registration
