@@ -624,9 +624,9 @@
 
     .footer {
       background: #f9fafb;
-      padding: 1.5rem 1.5rem 1rem;
+      padding: 0.5rem 1.5rem;
       text-align: center;
-      font-size: 0.875rem;
+      font-size: 0.75rem;
       color: #6b7280;
     }
 
@@ -634,16 +634,17 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 0.5rem;
+      gap: 0.25rem;
       flex-wrap: wrap;
       line-height: 1.6;
     }
 
     .footer-badge {
+      margin-right: 0.5rem;
       display: inline-flex;
       align-items: center;
-      gap: 0.375rem;
-      padding: 0.375rem 0.625rem;
+      gap: 0.2rem;
+      padding: 0.2rem 0.4rem;
       border: 1px solid #d1d5db;
       border-radius: 6px;
       background: white;
@@ -687,6 +688,12 @@
       font-size: 0.875rem;
       color: #92400e;
       font-weight: 500;
+    }
+
+    .yechi {
+      background: #667eea;
+      color: white;
+      padding: 0.5rem;
     }
 
     .changelog-version {
@@ -844,14 +851,11 @@
 
       <footer class="footer">
         <div class="footer-content">
-          <span>נבנה באמצעות</span>
           <div class="footer-badge">
             <img src="claude.jpeg" alt="Claude" class="claude-icon">
             <span style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Claude Code</span>
           </div>
-        </div>
-        <div class="footer-content" style="margin-top: 0.5rem;">
-          <span>עם הכוונה, רעיון ותמיכה של</span>
+          <span>בנה,</span>
           <a href="https://wa.me/972586030770?text=אהבתי%20את%20האפליקציה%20של%20הרמבם" class="footer-link" target="_blank" rel="noopener" aria-label="שלח הודעה בוואטסאפ">
             <div class="footer-badge">
               <img src="rabbi.jpeg" alt="הרב שוקי" class="footer-avatar">
@@ -861,8 +865,13 @@
               </svg>
             </div>
           </a>
+          <span>הגה והכווין.</span>
         </div>
       </footer>
+      
+      <div class="settings-dedication yechi">
+        יחי אדוננו מורנו ורבינו מלך המשיח לעולם ועד
+      </div>
     </div>
   </div>
 
@@ -1550,6 +1559,21 @@
     }
 
     // ============================================================================
+    // Scroll Helper
+    // ============================================================================
+    function scrollToCard(card) {
+      if (!card) return;
+
+      setTimeout(() => {
+        card.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+          inline: 'nearest'
+        });
+      }, 500);
+    }
+
+    // ============================================================================
     // Swipe Gesture & Double Click/Tap
     // ============================================================================
     function attachSwipeHandler(card) {
@@ -1560,7 +1584,6 @@
       let isSwiping = false;
       let isMouseDown = false;
       let lastTapTime = 0;
-      let doubleTapDetected = false;
 
       // Mark card as done with all the checks and scrolling
       function markCardDone() {
@@ -1601,14 +1624,11 @@
         updateDayHeader(date);
 
         // Scroll to next card
-        const nextCard = card.nextElementSibling;
-        if (nextCard && nextCard.classList.contains('halakha-card')) {
-          const nextCardTop = nextCard.getBoundingClientRect().top + window.scrollY;
-          window.scrollTo({
-            top: nextCardTop - 300,
-            behavior: 'smooth'
-          });
+        let nextCard = card.nextElementSibling;
+        while (nextCard && !nextCard.classList.contains('halakha-card')) {
+          nextCard = nextCard.nextElementSibling;
         }
+        scrollToCard(nextCard);
       }
 
       // Unmark card as done
@@ -1623,15 +1643,8 @@
         renderStats();
         updateDayHeader(date);
 
-        // Scroll to previous card
-        const prevCard = card.previousElementSibling;
-        if (prevCard && prevCard.classList.contains('halakha-card')) {
-          const prevCardTop = prevCard.getBoundingClientRect().top + window.scrollY;
-          window.scrollTo({
-            top: prevCardTop - 300,
-            behavior: 'smooth'
-          });
-        }
+        // Scroll to current card
+        scrollToCard(card);
       }
 
       // Double-click/tap handler
@@ -1662,14 +1675,10 @@
         if (timeSinceLastTap < 300 && timeSinceLastTap > 0) {
           // Double tap detected
           e.preventDefault();
-          e.stopPropagation();
-          doubleTapDetected = true;
           handleToggle();
           lastTapTime = 0;
           return;
         }
-
-        doubleTapDetected = false;
         lastTapTime = now;
 
         startX = e.touches[0].clientX;
@@ -1681,8 +1690,6 @@
       }, { passive: false });
 
       card.addEventListener('touchmove', (e) => {
-        if (doubleTapDetected) return;
-
         currentX = e.touches[0].clientX;
         currentY = e.touches[0].clientY;
         const deltaX = currentX - startX;
@@ -1700,14 +1707,7 @@
         }
       }, { passive: false });
 
-      card.addEventListener('touchend', () => {
-        if (doubleTapDetected) {
-          doubleTapDetected = false;
-          card.classList.remove('swiping');
-          return;
-        }
-        handleEnd();
-      }, { passive: true });
+      card.addEventListener('touchend', handleEnd, { passive: true });
 
       // Mouse events (desktop)
       card.addEventListener('mousedown', (e) => {
@@ -2113,26 +2113,25 @@
           localStorage.setItem('rambam_start', CYCLE_START);
         }
 
-        // Fetch coords and sunset before loading days
-        const coords = await getUserCoords();
-        const now = new Date();
-        const israelTimeStr = now.toLocaleString('en-US', { timeZone: 'Asia/Jerusalem' });
-        const israelTime = new Date(israelTimeStr);
-        const year = israelTime.getFullYear();
-        const month = String(israelTime.getMonth() + 1).padStart(2, '0');
-        const day = String(israelTime.getDate()).padStart(2, '0');
-        const rawDateStr = `${year}-${month}-${day}`;
-        await fetchSunset(rawDateStr, coords);
-
+        // Load days first for fast initial render
         await loadMissingDays();
         renderDays();
         renderStats();
 
-        // Update location display after everything is loaded
-        updateLocationDisplay();
-
         // Load changelog
         loadChangelog();
+
+        // Fetch coords and sunset in background (non-blocking)
+        getUserCoords().then(coords => {
+          const now = new Date();
+          const israelTimeStr = now.toLocaleString('en-US', { timeZone: 'Asia/Jerusalem' });
+          const israelTime = new Date(israelTimeStr);
+          const year = israelTime.getFullYear();
+          const month = String(israelTime.getMonth() + 1).padStart(2, '0');
+          const day = String(israelTime.getDate()).padStart(2, '0');
+          const rawDateStr = `${year}-${month}-${day}`;
+          fetchSunset(rawDateStr, coords);
+        });
 
         // Open settings on first visit
         if (firstVisit) {
@@ -2154,6 +2153,18 @@
               const todayDetails = document.querySelector(`details[data-date="${today}"]`);
               if (todayDetails) {
                 todayDetails.open = true;
+
+                // Wait for cards to load, then scroll to first incomplete
+                todayDetails.addEventListener('toggle', function scrollToIncomplete() {
+                  if (todayDetails.open) {
+                    setTimeout(() => {
+                      const firstIncomplete = todayDetails.querySelector('.halakha-card:not(.completed)');
+                      if (firstIncomplete) {
+                        scrollToCard(firstIncomplete);
+                      }
+                    }, 800); // Give more time for cards to render
+                  }
+                }, { once: true });
               }
             }
           }
