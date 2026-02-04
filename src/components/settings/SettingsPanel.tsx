@@ -442,26 +442,31 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
                   <h4 className="text-sm font-semibold text-gray-700 mb-3 text-center">
                     {isHebrew ? "קרדיטים" : "Credits"}
                   </h4>
-                  <div className="flex justify-center gap-6">
-                    {/* Rabbi Shuki */}
+                  <div className="flex flex-col gap-3">
+                    {/* Rabbi Shuki - conceived and directed */}
                     <a
                       href="https://wa.me/972586030770?text=אהבתי%20את%20האפליקציה%20של%20הרמבם"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex flex-col items-center gap-1 hover:opacity-80 transition-opacity"
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors"
                     >
                       <Image
                         src="/rabbi.jpeg"
                         alt="Rabbi Shuki"
-                        width={48}
-                        height={48}
+                        width={40}
+                        height={40}
                         className="rounded-full"
                       />
-                      <span className="text-xs text-gray-600">
-                        {isHebrew ? "הרב שוקי" : "Rabbi Shuki"}
-                      </span>
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-gray-800">
+                          {isHebrew ? "הרב שוקי" : "Rabbi Shuki"}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {isHebrew ? "הגה והכווין" : "Conceived & directed"}
+                        </div>
+                      </div>
                       <svg
-                        className="w-4 h-4"
+                        className="w-5 h-5"
                         viewBox="0 0 24 24"
                         fill="#25D366"
                       >
@@ -469,18 +474,42 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
                       </svg>
                     </a>
 
-                    {/* Meir */}
-                    <div className="flex flex-col items-center gap-1">
+                    {/* Claude Code - built */}
+                    <div className="flex items-center gap-3 p-2 rounded-lg">
+                      <Image
+                        src="/claude.jpeg"
+                        alt="Claude Code"
+                        width={40}
+                        height={40}
+                        className="rounded-lg"
+                      />
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-gray-800">
+                          Claude Code
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {isHebrew ? "בנה" : "Built"}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Meir - developed v3 */}
+                    <div className="flex items-center gap-3 p-2 rounded-lg">
                       <Image
                         src="https://github.com/meirpro.png"
                         alt="Meir"
-                        width={48}
-                        height={48}
+                        width={40}
+                        height={40}
                         className="rounded-full"
                       />
-                      <span className="text-xs text-gray-600">
-                        {isHebrew ? "מאיר" : "Meir"}
-                      </span>
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-gray-800">
+                          {isHebrew ? "מאיר" : "Meir"}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {isHebrew ? "פיתח גרסה 3" : "Developed v3"}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -489,7 +518,7 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
           </section>
         </div>
 
-        {/* Footer - Dedications (always in Hebrew as these are religious dedications) */}
+        {/* Dedications (always in Hebrew as these are religious dedications) */}
         <div
           className="bg-amber-100 p-3 text-center text-sm text-amber-800 font-medium"
           dir="rtl"
@@ -500,41 +529,9 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
             <strong>נתן</strong>
           </div>
           <div className="mt-1">
-            רפואה שלימה ל<strong>מרדכי</strong> בן <strong>חנה</strong>
+            לרפואה שלימה ל<strong>מרדכי</strong> בן <strong>חנה</strong>
           </div>
         </div>
-
-        <footer className="bg-gray-50 px-4 py-2 text-center text-xs text-gray-500">
-          <div className="flex items-center justify-center gap-1 flex-wrap">
-            <span className="inline-flex items-center gap-1 px-2 py-1 border border-gray-300 rounded-md bg-white">
-              <Image
-                src="/claude.jpeg"
-                alt="Claude"
-                width={18}
-                height={18}
-                className="rounded-sm"
-              />
-              <span>Claude Code</span>
-            </span>
-            <span>{isHebrew ? "בנה," : "built,"}</span>
-            <a
-              href="https://wa.me/972586030770?text=אהבתי%20את%20האפליקציה%20של%20הרמבם"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 px-2 py-1 border border-gray-300 rounded-md bg-white hover:opacity-80"
-            >
-              <Image
-                src="/rabbi.jpeg"
-                alt={isHebrew ? "הרב שוקי" : "Rabbi Shuki"}
-                width={24}
-                height={24}
-                className="rounded-full"
-              />
-              <span>{isHebrew ? "הרב שוקי" : "Rabbi Shuki"}</span>
-            </a>
-            <span>{isHebrew ? "הגה והכווין." : "conceived & directed."}</span>
-          </div>
-        </footer>
 
         <div className="bg-indigo-500 text-white p-2 text-center text-sm font-medium">
           יחי אדוננו מורנו ורבינו מלך המשיח לעולם ועד
