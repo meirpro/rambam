@@ -2008,8 +2008,36 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./service-worker.js')
-          .then(reg => console.log('Service Worker registered:', reg.scope))
+          .then(reg => {
+            console.log('Service Worker registered:', reg.scope);
+
+            // Check for updates on load
+            reg.update();
+
+            // Listen for new service worker waiting to activate
+            reg.addEventListener('updatefound', () => {
+              const newWorker = reg.installing;
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // New version available
+                  if (confirm('גרסה חדשה של האפליקציה זמינה! האם לרענן את הדף?')) {
+                    newWorker.postMessage({ type: 'SKIP_WAITING' });
+                    window.location.reload();
+                  }
+                }
+              });
+            });
+          })
           .catch(err => console.error('Service Worker registration failed:', err));
+
+        // Reload page when new service worker takes control
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (!refreshing) {
+            refreshing = true;
+            window.location.reload();
+          }
+        });
       });
     }
 
