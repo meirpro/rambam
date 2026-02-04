@@ -1560,6 +1560,7 @@
       let isSwiping = false;
       let isMouseDown = false;
       let lastTapTime = 0;
+      let doubleTapDetected = false;
 
       // Mark card as done with all the checks and scrolling
       function markCardDone() {
@@ -1661,10 +1662,14 @@
         if (timeSinceLastTap < 300 && timeSinceLastTap > 0) {
           // Double tap detected
           e.preventDefault();
+          e.stopPropagation();
+          doubleTapDetected = true;
           handleToggle();
           lastTapTime = 0;
           return;
         }
+
+        doubleTapDetected = false;
         lastTapTime = now;
 
         startX = e.touches[0].clientX;
@@ -1676,6 +1681,8 @@
       }, { passive: false });
 
       card.addEventListener('touchmove', (e) => {
+        if (doubleTapDetected) return;
+
         currentX = e.touches[0].clientX;
         currentY = e.touches[0].clientY;
         const deltaX = currentX - startX;
@@ -1693,7 +1700,14 @@
         }
       }, { passive: false });
 
-      card.addEventListener('touchend', handleEnd, { passive: true });
+      card.addEventListener('touchend', () => {
+        if (doubleTapDetected) {
+          doubleTapDetected = false;
+          card.classList.remove('swiping');
+          return;
+        }
+        handleEnd();
+      }, { passive: true });
 
       // Mouse events (desktop)
       card.addEventListener('mousedown', (e) => {
@@ -2056,7 +2070,7 @@
 
         versions.forEach(version => {
           const changes = CHANGELOG[version];
-          if (!changes || changes.length === 0) return;
+          if (!changes || changes.length === 0) return; // Skip empty versions (like 2.1)
 
           const details = document.createElement('details');
           details.className = 'changelog-version';
