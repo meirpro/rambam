@@ -39,6 +39,10 @@
     "setupLocation": "Set up your location to begin"
   },
   "locationDialog": {
+    "languageTitle": "Choose Language",
+    "languageDescription": "Select your preferred interface language",
+    "continueWithLanguage": "Continue in English",
+    "changeLanguage": "Change language",
     "title": "Location Setup",
     "description": "To calculate the accurate sunset time for your area, we need to know your location.",
     "useMyLocation": "Use my location",

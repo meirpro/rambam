@@ -39,6 +39,10 @@
     "setupLocation": "הגדר את מיקומך כדי להתחיל"
   },
   "locationDialog": {
+    "languageTitle": "בחר שפה",
+    "languageDescription": "בחר את שפת הממשק המועדפת עליך",
+    "continueWithLanguage": "המשך בעברית",
+    "changeLanguage": "שנה שפה",
     "title": "הגדרת מיקום",
     "description": "כדי לחשב את זמן השקיעה המדויק לאזורך, אנחנו צריכים לדעת את מיקומך.",
     "useMyLocation": "השתמש במיקום שלי",

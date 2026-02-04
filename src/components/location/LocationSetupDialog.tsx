@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { useRouter, usePathname } from "next/navigation";
 import { useLocationStore } from "@/stores/locationStore";
 import { getUserLocation, reverseGeocode } from "@/services/geocoding";
 import { fetchSunset } from "@/services/hebcal";
@@ -14,16 +15,25 @@ interface LocationSetupDialogProps {
   onComplete: () => void;
 }
 
+type Step = "language" | "choice" | "manual" | "loading";
+
 /**
- * Dialog that asks the user how they want to set their location
- * Must be shown BEFORE requesting browser geolocation permissions
+ * Dialog for initial app setup:
+ * 1. Language selection
+ * 2. Location method choice
+ * 3. Manual city input (optional)
  */
 export function LocationSetupDialog({
   isOpen,
   onComplete,
 }: LocationSetupDialogProps) {
+  const locale = useLocale();
+  const router = useRouter();
+  const pathname = usePathname();
   const t = useTranslations("locationDialog");
-  const [step, setStep] = useState<"choice" | "manual" | "loading">("choice");
+
+  // Start with language step if not yet selected, otherwise location choice
+  const [step, setStep] = useState<Step>("language");
   const [manualCity, setManualCity] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -31,6 +41,20 @@ export function LocationSetupDialog({
   const setSunset = useLocationStore((state) => state.setSunset);
   const markLocationSetup = useLocationStore(
     (state) => state.markLocationSetup,
+  );
+
+  // Handle language selection
+  const handleSelectLanguage = useCallback(
+    (newLocale: "he" | "en") => {
+      if (newLocale !== locale) {
+        // Navigate to the new locale
+        const newPath = pathname.replace(`/${locale}`, `/${newLocale}`);
+        router.push(newPath);
+      }
+      // Move to location step
+      setStep("choice");
+    },
+    [locale, pathname, router],
   );
 
   // Handle "Use My Location" - will trigger browser permission
@@ -151,15 +175,55 @@ export function LocationSetupDialog({
     setError(null);
   }, []);
 
-  // Handle back to choice
-  const handleBack = useCallback(() => {
+  // Handle back navigation
+  const handleBackToLanguage = useCallback(() => {
+    setStep("language");
+    setError(null);
+  }, []);
+
+  const handleBackToChoice = useCallback(() => {
     setStep("choice");
     setError(null);
   }, []);
 
   return (
-    <Modal isOpen={isOpen} title={t("title")} onClose={() => {}}>
+    <Modal
+      isOpen={isOpen}
+      title={step === "language" ? t("languageTitle") : t("title")}
+      onClose={() => {}}
+    >
       <div className="text-center">
+        {/* Step 1: Language Selection */}
+        {step === "language" && (
+          <>
+            <div className="text-5xl mb-4">🌐</div>
+            <p className="text-gray-600 mb-6">{t("languageDescription")}</p>
+
+            <div className="space-y-3">
+              {/* Primary: Continue with auto-detected language */}
+              <Button
+                variant="primary"
+                fullWidth
+                onClick={() => setStep("choice")}
+              >
+                {t("continueWithLanguage")}
+              </Button>
+
+              {/* Secondary: Switch to the other language */}
+              <Button
+                variant="secondary"
+                fullWidth
+                onClick={() =>
+                  handleSelectLanguage(locale === "he" ? "en" : "he")
+                }
+              >
+                {locale === "he" ? "🇺🇸 Switch to English" : "🇮🇱 עבור לעברית"}
+              </Button>
+            </div>
+          </>
+        )}
+
+        {/* Loading state */}
         {step === "loading" && (
           <div className="py-8">
             <div className="text-5xl mb-4 animate-pulse text-blue-500">📍</div>
@@ -167,6 +231,7 @@ export function LocationSetupDialog({
           </div>
         )}
 
+        {/* Step 2: Location Choice */}
         {step === "choice" && (
           <>
             <svg
@@ -193,12 +258,21 @@ export function LocationSetupDialog({
               >
                 ✏️ {t("enterManually")}
               </Button>
+
+              <Button
+                variant="secondary"
+                fullWidth
+                onClick={handleBackToLanguage}
+              >
+                ← {t("changeLanguage")}
+              </Button>
             </div>
 
             <p className="text-xs text-gray-400 mt-4">{t("privacyNote")}</p>
           </>
         )}
 
+        {/* Step 3: Manual City Entry */}
         {step === "manual" && (
           <>
             <svg
@@ -244,7 +318,11 @@ export function LocationSetupDialog({
                 {t("confirm")}
               </Button>
 
-              <Button variant="secondary" fullWidth onClick={handleBack}>
+              <Button
+                variant="secondary"
+                fullWidth
+                onClick={handleBackToChoice}
+              >
                 {t("back")}
               </Button>
             </div>

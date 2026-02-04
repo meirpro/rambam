@@ -26,12 +26,20 @@ const CHANGELOG: Record<string, { he: string; en: string }[]> = {
       en: "Migrated to Next.js 16 and React 19",
     },
     {
+      he: "תמיכה בספר המצוות - לימוד תרי״ג מצוות במחזור שנתי",
+      en: "Sefer HaMitzvot support - 613 commandments yearly cycle",
+    },
+    {
       he: "אפשרות לבחור בין 3 פרקים או פרק אחד ליום",
       en: "Option to choose between 3 chapters or 1 chapter per day",
     },
     {
       he: "תצוגה דו-לשונית: עברית, אנגלית, או שניהם",
       en: "Bilingual display: Hebrew, English, or both",
+    },
+    {
+      he: "בחירת שפת ממשק בהגדרה ראשונית",
+      en: "Language selection during initial setup",
     },
     {
       he: "שיפורי ביצועים ואמינות",
