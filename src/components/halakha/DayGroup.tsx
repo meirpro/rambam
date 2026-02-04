@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useAppStore, countCompleted, isDayComplete } from "@/stores/appStore";
 import { useHalakhaData } from "@/hooks/useHalakhaData";
 import { useJewishDate } from "@/hooks/useJewishDate";
-import { formatGregorianDate } from "@/lib/dates";
+import { daysBetween } from "@/lib/dates";
 import { HalakhaCard } from "./HalakhaCard";
 import { ChapterDivider } from "./ChapterDivider";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { DayData, StudyPath, TextLanguage } from "@/types";
 
 interface DayGroupProps {
@@ -39,6 +40,7 @@ export function DayGroup({
   const done = useAppStore((state) => state.done);
   const markAllComplete = useAppStore((state) => state.markAllComplete);
   const resetDay = useAppStore((state) => state.resetDay);
+  const { confirm } = useConfirmDialog();
 
   const { halakhot, chapterBreaks, isLoading, error } = useHalakhaData(
     isOpen ? dayData.ref : "",
@@ -49,9 +51,37 @@ export function DayGroup({
   const doneCount = countCompleted(done, studyPath, date);
   const isComplete = isDayComplete(done, studyPath, date, dayData.count);
   const isToday = date === today;
-  const dateLabel = isToday
-    ? t("dates.today")
-    : dayData.heDate || formatGregorianDate(date);
+
+  // Compute relative date (e.g., "Yesterday", "2 days ago")
+  const relativeDate = useMemo(() => {
+    const days = daysBetween(date, today);
+    if (days === 0) return t("dates.today");
+    if (days === 1) return t("dates.yesterday");
+    return t("dates.daysAgo", { count: days });
+  }, [date, today, t]);
+
+  // Get Hebrew calendar date in appropriate language
+  const hebrewDate = useMemo(() => {
+    if (isRTL) {
+      return dayData.heDate || null;
+    }
+    // English mode: use English Hebrew date, never Hebrew script
+    return dayData.enDate || null;
+  }, [isRTL, dayData.heDate, dayData.enDate]);
+
+  // Combine relative date with Hebrew calendar date
+  // e.g., "Yesterday • 17 Sh'vat" or "2 days ago • 16 Sh'vat"
+  const dateLabel = useMemo(() => {
+    if (isToday) {
+      return hebrewDate
+        ? `${t("dates.today")} • ${hebrewDate}`
+        : t("dates.today");
+    }
+    if (hebrewDate) {
+      return `${relativeDate} • ${hebrewDate}`;
+    }
+    return relativeDate;
+  }, [isToday, hebrewDate, relativeDate, t]);
 
   // Arrow direction: RTL uses ◀, LTR uses ▶
   const arrow = isRTL ? "◀" : "▶";
@@ -82,25 +112,30 @@ export function DayGroup({
   }, []);
 
   const handleCompleteAll = useCallback(
-    (e: React.MouseEvent) => {
+    async (e: React.MouseEvent) => {
       e.stopPropagation();
-      const msg = t("messages.confirmMarkAll", { title: displayTitle });
-      if (window.confirm(msg)) {
+      const confirmed = await confirm({
+        message: t("messages.confirmMarkAll", { title: displayTitle }),
+      });
+      if (confirmed) {
         markAllComplete(studyPath, date, dayData.count);
       }
     },
-    [markAllComplete, studyPath, date, dayData.count, displayTitle, t],
+    [markAllComplete, studyPath, date, dayData.count, displayTitle, t, confirm],
   );
 
   const handleReset = useCallback(
-    (e: React.MouseEvent) => {
+    async (e: React.MouseEvent) => {
       e.stopPropagation();
-      const msg = t("messages.confirmReset", { title: displayTitle });
-      if (window.confirm(msg)) {
+      const confirmed = await confirm({
+        message: t("messages.confirmReset", { title: displayTitle }),
+        variant: "danger",
+      });
+      if (confirmed) {
         resetDay(studyPath, date);
       }
     },
-    [resetDay, studyPath, date, displayTitle, t],
+    [resetDay, studyPath, date, displayTitle, t, confirm],
   );
 
   const handleMarkComplete = useCallback((index: number) => {
@@ -123,7 +158,8 @@ export function DayGroup({
       open={isOpen}
       onToggle={(e) => setIsOpen((e.target as HTMLDetailsElement).open)}
       className={`
-        mb-4 border rounded-xl overflow-hidden bg-white
+        mb-4 border rounded-xl bg-white
+        ${isOpen ? "" : "overflow-hidden"}
         ${isComplete ? "opacity-60 border-green-500" : "border-gray-200"}
       `}
     >
@@ -132,7 +168,13 @@ export function DayGroup({
           e.preventDefault();
           handleToggle();
         }}
-        className="px-4 py-3 cursor-pointer select-none list-none bg-gradient-to-b from-white to-gray-50 border-b border-gray-200 flex items-center justify-between gap-3 hover:bg-gray-50 active:bg-gray-100"
+        className={`
+          px-4 py-3 cursor-pointer select-none list-none
+          bg-gradient-to-b from-white to-gray-50 border-b border-gray-200
+          flex items-center justify-between gap-3
+          hover:bg-gray-50 active:bg-gray-100
+          ${isOpen ? "sticky top-[60px] z-10 rounded-t-xl shadow-sm" : ""}
+        `}
       >
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <span

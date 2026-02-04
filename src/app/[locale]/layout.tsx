@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
+import { Providers } from "@/components/Providers";
 import "../globals.css";
 
 const notoSansHebrew = Noto_Sans_Hebrew({
@@ -74,7 +75,7 @@ export default async function LocaleLayout({
         }}
       >
         <NextIntlClientProvider messages={messages}>
-          {children}
+          <Providers>{children}</Providers>
         </NextIntlClientProvider>
       </body>
     </html>

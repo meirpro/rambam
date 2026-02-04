@@ -125,6 +125,8 @@
   },
   "dates": {
     "today": "היום",
+    "yesterday": "אתמול",
+    "daysAgo": "לפני {count} ימים",
     "default": "ברירת מחדל"
   },
   "offline": {
@@ -148,5 +150,24 @@
     "refresh": "רענן",
     "refreshContent": "רענן תוכן",
     "later": "מאוחר יותר"
+  },
+  "confirmDialog": {
+    "title": "אישור",
+    "confirm": "אישור",
+    "cancel": "ביטול"
+  },
+  "calendar": {
+    "title": "בחר תאריך",
+    "close": "סגור",
+    "previousMonth": "חודש קודם",
+    "nextMonth": "חודש הבא",
+    "dayNamesShort": ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"],
+    "complete": "הושלם",
+    "partial": "חלקי",
+    "today": "היום"
+  },
+  "filter": {
+    "viewingDate": "מוצג: {date}",
+    "showAll": "כל התאריכים"
   }
 }

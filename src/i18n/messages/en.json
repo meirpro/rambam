@@ -125,6 +125,8 @@
   },
   "dates": {
     "today": "Today",
+    "yesterday": "Yesterday",
+    "daysAgo": "{count} days ago",
     "default": "default"
   },
   "offline": {
@@ -148,5 +150,24 @@
     "refresh": "Refresh",
     "refreshContent": "Refresh content",
     "later": "Later"
+  },
+  "confirmDialog": {
+    "title": "Confirm",
+    "confirm": "Confirm",
+    "cancel": "Cancel"
+  },
+  "calendar": {
+    "title": "Select Date",
+    "close": "Close",
+    "previousMonth": "Previous month",
+    "nextMonth": "Next month",
+    "dayNamesShort": ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"],
+    "complete": "Complete",
+    "partial": "Partial",
+    "today": "Today"
+  },
+  "filter": {
+    "viewingDate": "Viewing {date}",
+    "showAll": "Show all"
   }
 }

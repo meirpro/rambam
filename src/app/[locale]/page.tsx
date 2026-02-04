@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useTranslations } from "next-intl";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { useAppStore } from "@/stores/appStore";
 import { useLocationStore } from "@/stores/locationStore";
 import { useJewishDate } from "@/hooks/useJewishDate";
@@ -10,6 +10,7 @@ import { StatsBar } from "@/components/layout/StatsBar";
 import { DayGroup } from "@/components/halakha/DayGroup";
 import { SettingsPanel } from "@/components/settings/SettingsPanel";
 import { LocationSetupDialog } from "@/components/location/LocationSetupDialog";
+import { Calendar } from "@/components/calendar";
 import {
   InstallPrompt,
   useInstallPrompt,
@@ -24,11 +25,13 @@ import { dateRange } from "@/lib/dates";
 import type { DayData, StudyPath } from "@/types";
 
 export default function HomePage() {
+  const locale = useLocale();
   const t = useTranslations();
+  const isHebrew = locale === "he";
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [viewingDate, setViewingDate] = useState<string | null>(null);
-  const datePickerRef = useRef<HTMLInputElement>(null);
 
   // App store
   const studyPath = useAppStore((state) => state.studyPath);
@@ -48,6 +51,7 @@ export default function HomePage() {
     (state) => state.hasCompletedSetup,
   );
   const [showLocationDialog, setShowLocationDialog] = useState(false);
+  const [hasHydrated, setHasHydrated] = useState(false);
 
   // Install prompt
   const { canInstall, install } = useInstallPrompt();
@@ -138,12 +142,28 @@ export default function HomePage() {
     initializeOffline();
   }, []);
 
-  // Show location dialog on first visit (if location not set up)
+  // Wait for Zustand stores to hydrate from localStorage before checking setup state
   useEffect(() => {
-    if (!hasCompletedSetup) {
+    // Check if location store has hydrated
+    const unsubscribe = useLocationStore.persist.onFinishHydration(() => {
+      setHasHydrated(true);
+    });
+
+    // If already hydrated (e.g., hot reload), set immediately
+    if (useLocationStore.persist.hasHydrated()) {
+      setHasHydrated(true);
+    }
+
+    return unsubscribe;
+  }, []);
+
+  // Show location dialog on first visit (if location not set up)
+  // Only check after store has hydrated from localStorage
+  useEffect(() => {
+    if (hasHydrated && !hasCompletedSetup) {
       setShowLocationDialog(true);
     }
-  }, [hasCompletedSetup]);
+  }, [hasHydrated, hasCompletedSetup]);
 
   // Load missing days data (only after location is set up)
   useEffect(() => {
@@ -172,7 +192,15 @@ export default function HomePage() {
             const { halakhot, chapterBreaks } = await fetchHalakhot(
               calData.ref,
             );
-            const heDate = await fetchHebrewDate(date);
+
+            // Use cached Hebrew dates if available, otherwise fetch
+            let heDate = calData.heDate;
+            let enDate = calData.enDate;
+            if (!heDate || !enDate) {
+              const dateResult = await fetchHebrewDate(date);
+              heDate = dateResult?.he;
+              enDate = dateResult?.en;
+            }
 
             return {
               date,
@@ -181,7 +209,8 @@ export default function HomePage() {
                 en: calData.en,
                 ref: calData.ref,
                 count: halakhot.length,
-                heDate: heDate || undefined,
+                heDate,
+                enDate,
                 texts: halakhot,
                 chapterBreaks,
               } as DayData,
@@ -220,22 +249,21 @@ export default function HomePage() {
     .filter((date) => date <= today && date >= startDate)
     .sort((a, b) => b.localeCompare(a));
 
-  // Handle calendar button
+  // Handle calendar button click
   const handleCalendarClick = useCallback(() => {
     if (viewingDate) {
-      // Return to normal view
+      // Return to normal view (today)
       setViewingDate(null);
     } else {
-      // Open date picker
-      datePickerRef.current?.showPicker();
+      // Open calendar modal
+      setCalendarOpen(true);
     }
   }, [viewingDate]);
 
-  const handleDateSelect = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const selectedDate = e.target.value;
-      if (!selectedDate) return;
-
+  // Handle date selection from calendar
+  const handleCalendarSelect = useCallback(
+    async (selectedDate: string) => {
+      setCalendarOpen(false);
       setViewingDate(selectedDate);
 
       // Load this date if not already loaded
@@ -243,14 +271,23 @@ export default function HomePage() {
         try {
           const calData = await fetchCalendar(selectedDate, studyPath);
           const { halakhot, chapterBreaks } = await fetchHalakhot(calData.ref);
-          const heDate = await fetchHebrewDate(selectedDate);
+
+          // Use cached Hebrew dates if available, otherwise fetch
+          let heDate = calData.heDate;
+          let enDate = calData.enDate;
+          if (!heDate || !enDate) {
+            const dateResult = await fetchHebrewDate(selectedDate);
+            heDate = dateResult?.he;
+            enDate = dateResult?.en;
+          }
 
           setDayData(studyPath, selectedDate, {
             he: calData.he,
             en: calData.en,
             ref: calData.ref,
             count: halakhot.length,
-            heDate: heDate || undefined,
+            heDate,
+            enDate,
             texts: halakhot,
             chapterBreaks,
           });
@@ -270,17 +307,28 @@ export default function HomePage() {
   // Dates to display
   const displayDates = viewingDate ? [viewingDate] : sortedDates;
 
+  // Check if we're filtering to a specific date
+  const isFiltering = viewingDate !== null;
+
+  // Get display label for the filtered date
+  const filterDateLabel = useMemo(() => {
+    if (!viewingDate) return "";
+    const dayData = pathDays[viewingDate];
+    if (dayData) {
+      return isHebrew
+        ? dayData.heDate || viewingDate
+        : dayData.enDate || viewingDate;
+    }
+    return viewingDate;
+  }, [viewingDate, pathDays, isHebrew]);
+
+  // Clear filter handler
+  const handleClearFilter = useCallback(() => {
+    setViewingDate(null);
+  }, []);
+
   return (
     <div className="container">
-      {/* Hidden date picker */}
-      <input
-        ref={datePickerRef}
-        type="date"
-        className="hidden"
-        onChange={handleDateSelect}
-        aria-label="בחר תאריך"
-      />
-
       <Header
         onSettingsClick={() => setSettingsOpen(true)}
         onCalendarClick={handleCalendarClick}
@@ -292,6 +340,52 @@ export default function HomePage() {
       <StatsBar />
 
       <main className="p-4 pb-8">
+        {/* Date filter indicator - shown when viewing a specific date */}
+        {isFiltering && (
+          <div
+            className="mb-4 px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between"
+            dir={isHebrew ? "rtl" : "ltr"}
+          >
+            <div className="flex items-center gap-2 text-blue-800">
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+              <span className="font-medium">
+                {t("filter.viewingDate", { date: filterDateLabel })}
+              </span>
+            </div>
+            <button
+              onClick={handleClearFilter}
+              className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-colors"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+              {t("filter.showAll")}
+            </button>
+          </div>
+        )}
+
         {/* Show welcome when location not set up yet */}
         {!hasCompletedSetup && (
           <div className="text-center py-12">
@@ -365,6 +459,16 @@ export default function HomePage() {
       <LocationSetupDialog
         isOpen={showLocationDialog}
         onComplete={handleLocationSetupComplete}
+      />
+
+      {/* Calendar modal for date selection */}
+      <Calendar
+        isOpen={calendarOpen}
+        onClose={() => setCalendarOpen(false)}
+        selectedDate={viewingDate || today}
+        onDateSelect={handleCalendarSelect}
+        today={today}
+        startDate={startDate}
       />
     </div>
   );

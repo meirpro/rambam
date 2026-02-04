@@ -7,6 +7,7 @@ import type { StudyPath } from "@/types";
 import { formatDateString } from "@/lib/dates";
 import { fetchCalendar, prefetchText } from "./sefaria";
 import { fetchHebrewDate } from "./hebcal";
+import { updateCalendarHebrewDate } from "./database";
 
 export interface PrefetchProgress {
   total: number;
@@ -71,9 +72,18 @@ async function prefetchDay(
       }
     }
 
-    // 3. Fetch Hebrew date (optional, don't fail if this fails)
+    // 3. Fetch and save Hebrew date (optional, don't fail if this fails)
     try {
-      await fetchHebrewDate(date);
+      const dateResult = await fetchHebrewDate(date);
+      if (dateResult) {
+        // Save to IndexedDB so it's available offline
+        await updateCalendarHebrewDate(
+          studyPath,
+          date,
+          dateResult.he,
+          dateResult.en,
+        );
+      }
     } catch {
       // Hebrew date is non-critical
     }

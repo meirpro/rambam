@@ -226,6 +226,7 @@ export const useAppStore = create<AppStore>()(
                 ref: dayData.ref || "",
                 count: dayData.count || 0,
                 heDate: dayData.heDate,
+                enDate: dayData.enDate,
                 // texts and chapterBreaks are intentionally excluded
               };
             }

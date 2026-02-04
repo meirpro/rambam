@@ -31,6 +31,7 @@ export interface StoredCalendar {
   ref: string;
   count: number;
   heDate?: string;
+  enDate?: string;
   fetchedAt: string; // ISO timestamp
 }
 
@@ -177,6 +178,7 @@ export async function saveCalendarToDB(
     ref: string;
     count: number;
     heDate?: string;
+    enDate?: string;
   },
 ): Promise<void> {
   const db = await openDatabase();
@@ -188,6 +190,29 @@ export async function saveCalendarToDB(
     fetchedAt: new Date().toISOString(),
   };
   await db.put(CALENDAR_STORE, stored);
+}
+
+/**
+ * Update Hebrew date fields on an existing calendar entry
+ */
+export async function updateCalendarHebrewDate(
+  path: StudyPath,
+  date: string,
+  heDate: string,
+  enDate: string,
+): Promise<void> {
+  const db = await openDatabase();
+  const key = makeCalendarKey(path, date);
+  const existing = await db.get(CALENDAR_STORE, key);
+
+  if (existing) {
+    const updated: StoredCalendar = {
+      ...existing,
+      heDate,
+      enDate,
+    };
+    await db.put(CALENDAR_STORE, updated);
+  }
 }
 
 /**

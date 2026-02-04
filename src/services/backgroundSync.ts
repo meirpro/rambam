@@ -119,7 +119,7 @@ async function runDailyPrefetch(): Promise<void> {
       const { halakhot, chapterBreaks } = await fetchHalakhot(calData.ref);
 
       // Fetch Hebrew date
-      const heDate = await fetchHebrewDate(date);
+      const dateResult = await fetchHebrewDate(date);
 
       // Update app store with metadata
       setDayData(studyPath, date, {
@@ -127,7 +127,8 @@ async function runDailyPrefetch(): Promise<void> {
         en: calData.en,
         ref: calData.ref,
         count: halakhot.length,
-        heDate: heDate || undefined,
+        heDate: dateResult?.he,
+        enDate: dateResult?.en,
         texts: halakhot,
         chapterBreaks,
       });

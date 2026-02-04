@@ -35,7 +35,8 @@ export function useStats(): Stats {
 
     allDates.forEach((date) => {
       const dayData = pathDays[date];
-      if (!dayData) return;
+      // Skip if no data or no count
+      if (!dayData || !dayData.count || dayData.count <= 0) return;
 
       totalDays++;
       const doneCount = countCompleted(done, studyPath, date);

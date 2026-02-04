@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { Toggle } from "@/components/ui/Toggle";
 import { StudyPathPicker } from "./StudyPathPicker";
 import { PrefetchButton } from "./PrefetchButton";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 interface SettingsPanelProps {
   isOpen: boolean;
@@ -242,17 +243,27 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
     }
   }, [setLocation, setSunset]);
 
-  const handleResetPath = useCallback(() => {
-    if (window.confirm(tMessages("confirmResetPath"))) {
+  const { confirm } = useConfirmDialog();
+
+  const handleResetPath = useCallback(async () => {
+    const confirmed = await confirm({
+      message: tMessages("confirmResetPath"),
+      variant: "danger",
+    });
+    if (confirmed) {
       resetPath(studyPath);
     }
-  }, [resetPath, studyPath, tMessages]);
+  }, [resetPath, studyPath, tMessages, confirm]);
 
-  const handleResetAll = useCallback(() => {
-    if (window.confirm(tMessages("confirmResetAll"))) {
+  const handleResetAll = useCallback(async () => {
+    const confirmed = await confirm({
+      message: tMessages("confirmResetAll"),
+      variant: "danger",
+    });
+    if (confirmed) {
       resetAll();
     }
-  }, [resetAll, tMessages]);
+  }, [resetAll, tMessages, confirm]);
 
   const locationSuffix = isDefault
     ? isHebrew

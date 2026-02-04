@@ -29,7 +29,8 @@ export interface DayData {
   ref: string; // Primary Sefaria reference (e.g., "Mishneh Torah, Human Dispositions 1-3")
   refs?: string[]; // Multiple refs for Sefer HaMitzvot (each commandment)
   count: number; // Number of halakhot/mitzvot
-  heDate?: string; // Hebrew date (e.g., "ט״ז שבט")
+  heDate?: string; // Hebrew date in Hebrew (e.g., "י״ז שבט")
+  enDate?: string; // Hebrew date in English (e.g., "17 Sh'vat")
   texts?: HalakhaText[]; // Cached text content
   chapterBreaks?: number[]; // Indices where new chapters start
 }

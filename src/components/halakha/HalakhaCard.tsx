@@ -233,7 +233,8 @@ export function HalakhaCard({
           {state.direction === "right" && (
             <div
               className={`
-                absolute inset-y-0 left-0 rounded-xl overflow-hidden
+                absolute inset-y-0 left-0 rounded-xl
+                flex items-center justify-center
                 transition-colors duration-150
                 ${
                   isOverThreshold
@@ -250,23 +251,20 @@ export function HalakhaCard({
                 opacity: swipeProgress * 0.9 + 0.1,
               }}
             >
-              {/* Sticky container keeps content centered in viewport for tall cards */}
-              <div className="sticky top-[50vh] -translate-y-1/2 h-0 flex items-center justify-center px-4">
-                <div
-                  className="flex flex-col items-center gap-1 text-white"
-                  dir="rtl"
+              <div
+                className="flex flex-col items-center gap-1 text-white px-3"
+                dir="rtl"
+              >
+                <span
+                  className={`text-2xl ${isOverThreshold ? "scale-125" : ""} transition-transform`}
                 >
-                  <span
-                    className={`text-2xl ${isOverThreshold ? "scale-125" : ""} transition-transform`}
-                  >
-                    {isCompleted ? "↩" : "✓"}
-                  </span>
-                  <span
-                    className={`text-sm font-medium whitespace-nowrap ${swipeProgress > 0.5 ? "opacity-100" : "opacity-0"} transition-opacity`}
-                  >
-                    {isCompleted ? t("markUnread") : t("markRead")}
-                  </span>
-                </div>
+                  {isCompleted ? "↩" : "✓"}
+                </span>
+                <span
+                  className={`text-xs font-medium whitespace-nowrap ${swipeProgress > 0.5 ? "opacity-100" : "opacity-0"} transition-opacity`}
+                >
+                  {isCompleted ? t("markUnread") : t("markRead")}
+                </span>
               </div>
             </div>
           )}
@@ -275,7 +273,8 @@ export function HalakhaCard({
           {state.direction === "left" && (
             <div
               className={`
-                absolute inset-y-0 right-0 rounded-xl overflow-hidden
+                absolute inset-y-0 right-0 rounded-xl
+                flex items-center justify-center
                 transition-colors duration-150
                 ${
                   isOverThreshold
@@ -292,27 +291,24 @@ export function HalakhaCard({
                 opacity: swipeProgress * 0.9 + 0.1,
               }}
             >
-              {/* Sticky container keeps content centered in viewport for tall cards */}
-              <div className="sticky top-[50vh] -translate-y-1/2 h-0 flex items-center justify-center px-4">
-                <div
-                  className="flex flex-col items-center gap-1 text-white"
-                  dir="rtl"
+              <div
+                className="flex flex-col items-center gap-1 text-white px-3"
+                dir="rtl"
+              >
+                <span
+                  className={`text-2xl ${isOverThreshold ? "scale-125" : ""} transition-transform`}
                 >
-                  <span
-                    className={`text-2xl ${isOverThreshold ? "scale-125" : ""} transition-transform`}
-                  >
-                    {isCompleted ? "↩" : "✓✓"}
-                  </span>
-                  <span
-                    className={`text-sm font-medium whitespace-nowrap ${swipeProgress > 0.5 ? "opacity-100" : "opacity-0"} transition-opacity`}
-                  >
-                    {isCompleted
-                      ? t("markUnread")
-                      : t("markAllPrevious", {
-                          count: incompletePreviousCount + 1,
-                        })}
-                  </span>
-                </div>
+                  {isCompleted ? "↩" : "✓✓"}
+                </span>
+                <span
+                  className={`text-xs font-medium whitespace-nowrap ${swipeProgress > 0.5 ? "opacity-100" : "opacity-0"} transition-opacity`}
+                >
+                  {isCompleted
+                    ? t("markUnread")
+                    : t("markAllPrevious", {
+                        count: incompletePreviousCount + 1,
+                      })}
+                </span>
               </div>
             </div>
           )}

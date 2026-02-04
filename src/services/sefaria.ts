@@ -123,7 +123,9 @@ function parseSeferHaMitzvotTitle(title: string): string[] {
  */
 async function fetchSeferHaMitzvotCalendar(
   dateStr: string,
-): Promise<Pick<DayData, "he" | "en" | "ref"> & { refs: string[] }> {
+): Promise<
+  Pick<DayData, "he" | "en" | "ref" | "heDate" | "enDate"> & { refs: string[] }
+> {
   // Check IndexedDB first
   const cached = await getCalendarFromDB("mitzvot", dateStr);
   if (cached && !isStale(cached.fetchedAt, CALENDAR_STALE_DAYS)) {
@@ -136,6 +138,8 @@ async function fetchSeferHaMitzvotCalendar(
       en: cached.en,
       ref: cached.ref,
       refs,
+      heDate: cached.heDate,
+      enDate: cached.enDate,
     };
   }
 
@@ -150,6 +154,8 @@ async function fetchSeferHaMitzvotCalendar(
         en: cached.en,
         ref: cached.ref,
         refs,
+        heDate: cached.heDate,
+        enDate: cached.enDate,
       };
     }
     throw new Error("Offline and no cached data available");
@@ -168,6 +174,8 @@ async function fetchSeferHaMitzvotCalendar(
         en: cached.en,
         ref: cached.ref,
         refs,
+        heDate: cached.heDate,
+        enDate: cached.enDate,
       };
     }
     throw new Error(`HebCal API failed: ${res.status}`);
@@ -194,11 +202,14 @@ async function fetchSeferHaMitzvotCalendar(
     en: enDisplay,
     ref: refs[0] || entry.title,
     refs,
+    heDate: undefined as string | undefined,
+    enDate: undefined as string | undefined,
   };
 
   // Save to IndexedDB (store refs as comma-separated in ref field)
   saveCalendarToDB("mitzvot", dateStr, {
-    ...result,
+    he: result.he,
+    en: result.en,
     ref: refs.join(", "),
     count: 0,
   }).catch((err) => console.error("Failed to cache calendar:", err));
@@ -212,7 +223,7 @@ async function fetchSeferHaMitzvotCalendar(
 async function fetchSefariaCalendar(
   dateStr: string,
   path: StudyPath,
-): Promise<Pick<DayData, "he" | "en" | "ref">> {
+): Promise<Pick<DayData, "he" | "en" | "ref" | "heDate" | "enDate">> {
   // Check IndexedDB first
   const cached = await getCalendarFromDB(path, dateStr);
   if (cached && !isStale(cached.fetchedAt, CALENDAR_STALE_DAYS)) {
@@ -220,6 +231,8 @@ async function fetchSefariaCalendar(
       he: cached.he,
       en: cached.en,
       ref: cached.ref,
+      heDate: cached.heDate,
+      enDate: cached.enDate,
     };
   }
 
@@ -230,6 +243,8 @@ async function fetchSefariaCalendar(
         he: cached.he,
         en: cached.en,
         ref: cached.ref,
+        heDate: cached.heDate,
+        enDate: cached.enDate,
       };
     }
     throw new Error("Offline and no cached data available");
@@ -246,6 +261,8 @@ async function fetchSefariaCalendar(
         he: cached.he,
         en: cached.en,
         ref: cached.ref,
+        heDate: cached.heDate,
+        enDate: cached.enDate,
       };
     }
     throw new Error(`Calendar API failed: ${res.status}`);
@@ -266,11 +283,15 @@ async function fetchSefariaCalendar(
     he: entry.displayValue.he,
     en: entry.displayValue.en,
     ref: entry.ref,
+    heDate: undefined as string | undefined,
+    enDate: undefined as string | undefined,
   };
 
   // Save to IndexedDB
   saveCalendarToDB(path, dateStr, {
-    ...result,
+    he: result.he,
+    en: result.en,
+    ref: result.ref,
     count: 0,
   }).catch((err) => console.error("Failed to cache calendar:", err));
 
@@ -286,7 +307,9 @@ async function fetchSefariaCalendar(
 export async function fetchCalendar(
   dateStr: string,
   path: StudyPath,
-): Promise<Pick<DayData, "he" | "en" | "ref"> & { refs?: string[] }> {
+): Promise<
+  Pick<DayData, "he" | "en" | "ref" | "heDate" | "enDate"> & { refs?: string[] }
+> {
   // Use HebCal for Sefer HaMitzvot
   if (path === "mitzvot") {
     return fetchSeferHaMitzvotCalendar(dateStr);
