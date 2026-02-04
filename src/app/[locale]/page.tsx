@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useTranslations } from "next-intl";
 import { useAppStore } from "@/stores/appStore";
 import { useLocationStore } from "@/stores/locationStore";
 import { useJewishDate } from "@/hooks/useJewishDate";
@@ -14,12 +15,16 @@ import {
   useInstallPrompt,
 } from "@/components/pwa/InstallPrompt";
 import { UpdateBanner } from "@/components/pwa/UpdateBanner";
+import { OfflineIndicator } from "@/components/pwa/OfflineIndicator";
+import { initializeOffline } from "@/services/offlineInit";
+import { useOfflineStatus } from "@/hooks/useOfflineStatus";
 import { fetchCalendar, fetchHalakhot } from "@/services/sefaria";
 import { fetchHebrewDate } from "@/services/hebcal";
 import { dateRange } from "@/lib/dates";
 import type { DayData, StudyPath } from "@/types";
 
 export default function HomePage() {
+  const t = useTranslations();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [viewingDate, setViewingDate] = useState<string | null>(null);
@@ -46,6 +51,9 @@ export default function HomePage() {
 
   // Install prompt
   const { canInstall, install } = useInstallPrompt();
+
+  // Offline status
+  const { isOffline } = useOfflineStatus();
 
   // Jewish date
   const today = useJewishDate();
@@ -124,6 +132,11 @@ export default function HomePage() {
 
     setMigrated();
   }, [hasMigratedLegacy, setMigrated, setStartDate, setDaysData, markComplete]);
+
+  // Initialize offline-first infrastructure (IndexedDB, background sync, cleanup)
+  useEffect(() => {
+    initializeOffline();
+  }, []);
 
   // Show location dialog on first visit (if location not set up)
   useEffect(() => {
@@ -284,9 +297,9 @@ export default function HomePage() {
           <div className="text-center py-12">
             <div className="text-6xl mb-4">📚</div>
             <div className="text-2xl font-bold text-gray-800 mb-2">
-              ברוכים הבאים!
+              {t("welcome.title")}
             </div>
-            <div className="text-gray-500">הגדר את מיקומך כדי להתחיל</div>
+            <div className="text-gray-500">{t("welcome.setupLocation")}</div>
           </div>
         )}
 
@@ -294,10 +307,32 @@ export default function HomePage() {
         {hasCompletedSetup && isLoading && sortedDates.length === 0 && (
           <div className="text-center py-12">
             <div className="text-6xl mb-4">📚</div>
-            <div className="text-2xl font-bold text-gray-800 mb-2">טוען...</div>
-            <div className="text-gray-500">טוען את הלימוד היומי שלך...</div>
+            <div className="text-2xl font-bold text-gray-800 mb-2">
+              {t("messages.loading")}
+            </div>
+            <div className="text-gray-500">{t("welcome.loading")}</div>
           </div>
         )}
+
+        {/* Show offline message when no cached data */}
+        {hasCompletedSetup &&
+          !isLoading &&
+          sortedDates.length === 0 &&
+          isOffline && (
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">📴</div>
+              <div className="text-2xl font-bold text-gray-800 mb-2">
+                {t("offline.noConnection")}
+              </div>
+              <div className="text-gray-500 mb-4">{t("offline.noData")}</div>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                {t("offline.tryAgain")}
+              </button>
+            </div>
+          )}
 
         {displayDates.map((date) => {
           const dayData = pathDays[date];
@@ -324,6 +359,7 @@ export default function HomePage() {
 
       <InstallPrompt />
       <UpdateBanner />
+      <OfflineIndicator />
 
       {/* Location setup dialog - shown on first visit */}
       <LocationSetupDialog

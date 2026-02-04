@@ -21,6 +21,32 @@ interface SettingsPanelProps {
 
 // Bilingual changelog - Hebrew and English
 const CHANGELOG: Record<string, { he: string; en: string }[]> = {
+  "4": [
+    {
+      he: "ארכיטקטורת אופליין-פירסט - האפליקציה עובדת ללא אינטרנט",
+      en: "Offline-first architecture - app works without internet",
+    },
+    {
+      he: "אחסון ב-IndexedDB - ללא מגבלת נפח",
+      en: "IndexedDB storage - unlimited capacity",
+    },
+    {
+      he: "הורדת תוכן מראש - הורד שבוע קדימה לשימוש אופליין",
+      en: "Content prefetch - download week ahead for offline use",
+    },
+    {
+      he: "סנכרון אוטומטי ברקע - תוכן מתעדכן בשקט",
+      en: "Automatic background sync - content updates silently",
+    },
+    {
+      he: "חיווי מצב אופליין - באנר צהוב כשאין חיבור",
+      en: "Offline status indicator - yellow banner when disconnected",
+    },
+    {
+      he: "תרגום מלא לאנגלית ועברית",
+      en: "Full Hebrew and English translations",
+    },
+  ],
   "3": [
     {
       he: "מעבר ל-Next.js 16 ו-React 19",
@@ -155,6 +181,11 @@ const CONTRIBUTORS: Record<
   "3": {
     name: { he: "מאיר", en: "Meir" },
     avatar: "https://github.com/meirpro.png",
+  },
+  "4": {
+    name: { he: "הרב שוקי", en: "Rabbi Shuki" },
+    avatar: "/rabbi.jpeg",
+    link: "https://wa.me/972586030770?text=אהבתי%20את%20האפליקציה%20של%20הרמבם",
   },
 };
 
@@ -394,7 +425,7 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
                       <details
                         key={version}
                         className="mb-2 border rounded-lg overflow-hidden"
-                        open={version === "3"}
+                        open={version === "4"}
                       >
                         <summary className="px-3 py-2 bg-gray-50 font-semibold text-sm cursor-pointer hover:bg-gray-100 flex items-center gap-2">
                           <span className="inline-block transition-transform">
@@ -493,7 +524,7 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
                       </div>
                     </div>
 
-                    {/* Meir - developed v3 */}
+                    {/* Meir - contributor */}
                     <div className="flex items-center gap-3 p-2 rounded-lg">
                       <Image
                         src="https://github.com/meirpro.png"
@@ -507,7 +538,7 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
                           {isHebrew ? "מאיר" : "Meir"}
                         </div>
                         <div className="text-xs text-gray-500">
-                          {isHebrew ? "פיתח גרסה 3" : "Developed v3"}
+                          {isHebrew ? "תרם" : "Contributor"}
                         </div>
                       </div>
                     </div>

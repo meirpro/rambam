@@ -1,14 +1,28 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
+import { useOfflineStore } from "@/stores/offlineStore";
 
 export function UpdateBanner() {
-  const [showBanner, setShowBanner] = useState(false);
+  const t = useTranslations("update");
+  const [hasAppUpdate, setHasAppUpdate] = useState(false);
   const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(
     null,
   );
+  const [dismissed, setDismissed] = useState<"app" | "content" | null>(null);
 
+  // Content update from background sync
+  const hasContentUpdate = useOfflineStore((s) => s.hasContentUpdate);
+  const setHasContentUpdate = useOfflineStore((s) => s.setHasContentUpdate);
+
+  // Derive banner type from state (app update takes priority)
+  const showAppBanner = hasAppUpdate && dismissed !== "app";
+  const showContentBanner =
+    hasContentUpdate && !showAppBanner && dismissed !== "content";
+
+  // Service worker update detection
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
 
@@ -34,9 +48,10 @@ export function UpdateBanner() {
             newWorker.state === "installed" &&
             navigator.serviceWorker.controller
           ) {
-            // New version available
+            // New app version available
             setWaitingWorker(newWorker);
-            setShowBanner(true);
+            setHasAppUpdate(true);
+            setDismissed(null); // Reset dismissed state for new update
           }
         });
       });
@@ -50,39 +65,80 @@ export function UpdateBanner() {
     };
   }, []);
 
-  const handleUpdate = useCallback(() => {
+  const handleAppUpdate = useCallback(() => {
     if (waitingWorker) {
       waitingWorker.postMessage({ type: "SKIP_WAITING" });
     }
-    setShowBanner(false);
+    setHasAppUpdate(false);
   }, [waitingWorker]);
 
-  const handleDismiss = useCallback(() => {
-    setShowBanner(false);
+  const handleContentRefresh = useCallback(() => {
+    setHasContentUpdate(false);
+    // Soft refresh - just reload the page to pick up new data
+    window.location.reload();
+  }, [setHasContentUpdate]);
+
+  const handleDismissApp = useCallback(() => {
+    setDismissed("app");
   }, []);
 
-  if (!showBanner) return null;
+  const handleDismissContent = useCallback(() => {
+    setHasContentUpdate(false);
+    setDismissed("content");
+  }, [setHasContentUpdate]);
 
+  if (!showAppBanner && !showContentBanner) return null;
+
+  // App update banner (blue)
+  if (showAppBanner) {
+    return (
+      <div className="fixed bottom-0 left-0 right-0 bg-blue-600 text-white px-4 py-3 z-[1001] shadow-lg">
+        <div className="max-w-md mx-auto flex items-center justify-between gap-4">
+          <span className="text-sm font-medium">{t("appAvailable")}</span>
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleAppUpdate}
+              className="text-white hover:bg-white/20"
+            >
+              {t("refresh")}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleDismissApp}
+              className="text-white/70 hover:bg-white/20"
+            >
+              {t("later")}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Content update banner (green)
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-blue-600 text-white px-4 py-3 z-[1001] shadow-lg">
+    <div className="fixed bottom-0 left-0 right-0 bg-green-600 text-white px-4 py-3 z-[1001] shadow-lg">
       <div className="max-w-md mx-auto flex items-center justify-between gap-4">
-        <span className="text-sm font-medium">גרסה חדשה זמינה!</span>
+        <span className="text-sm font-medium">{t("contentAvailable")}</span>
         <div className="flex gap-2">
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleUpdate}
+            onClick={handleContentRefresh}
             className="text-white hover:bg-white/20"
           >
-            רענן
+            {t("refreshContent")}
           </Button>
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleDismiss}
+            onClick={handleDismissContent}
             className="text-white/70 hover:bg-white/20"
           >
-            מאוחר יותר
+            {t("later")}
           </Button>
         </div>
       </div>
