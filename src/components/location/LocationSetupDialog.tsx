@@ -4,18 +4,20 @@ import { useState, useCallback } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter, usePathname } from "next/navigation";
 import { useLocationStore } from "@/stores/locationStore";
+import { useAppStore } from "@/stores/appStore";
 import { getUserLocation, reverseGeocode } from "@/services/geocoding";
 import { fetchSunset } from "@/services/hebcal";
 import { getTodayInIsrael } from "@/lib/dates";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
+import type { StudyPath } from "@/types";
 
 interface LocationSetupDialogProps {
   isOpen: boolean;
   onComplete: () => void;
 }
 
-type Step = "language" | "choice" | "manual" | "loading";
+type Step = "language" | "path" | "choice" | "manual" | "loading";
 
 /**
  * Dialog for initial app setup:
@@ -31,17 +33,20 @@ export function LocationSetupDialog({
   const router = useRouter();
   const pathname = usePathname();
   const t = useTranslations("locationDialog");
+  const tPaths = useTranslations("paths");
 
   // Start with language step if not yet selected, otherwise location choice
   const [step, setStep] = useState<Step>("language");
   const [manualCity, setManualCity] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [selectedPath, setSelectedPath] = useState<StudyPath>("rambam3");
 
   const setLocation = useLocationStore((state) => state.setLocation);
   const setSunset = useLocationStore((state) => state.setSunset);
   const markLocationSetup = useLocationStore(
     (state) => state.markLocationSetup,
   );
+  const setStudyPath = useAppStore((state) => state.setStudyPath);
 
   // Handle language selection
   const handleSelectLanguage = useCallback(
@@ -51,11 +56,17 @@ export function LocationSetupDialog({
         const newPath = pathname.replace(`/${locale}`, `/${newLocale}`);
         router.push(newPath);
       }
-      // Move to location step
-      setStep("choice");
+      // Move to path selection step
+      setStep("path");
     },
     [locale, pathname, router],
   );
+
+  // Handle path selection and continue to location
+  const handlePathContinue = useCallback(() => {
+    setStudyPath(selectedPath);
+    setStep("choice");
+  }, [selectedPath, setStudyPath]);
 
   // Handle "Use My Location" - will trigger browser permission
   const handleUseMyLocation = useCallback(async () => {
@@ -189,7 +200,13 @@ export function LocationSetupDialog({
   return (
     <Modal
       isOpen={isOpen}
-      title={step === "language" ? t("languageTitle") : t("title")}
+      title={
+        step === "language"
+          ? t("languageTitle")
+          : step === "path"
+            ? t("pathTitle")
+            : t("title")
+      }
       onClose={() => {}}
     >
       <div className="text-center">
@@ -204,7 +221,7 @@ export function LocationSetupDialog({
               <Button
                 variant="primary"
                 fullWidth
-                onClick={() => setStep("choice")}
+                onClick={() => setStep("path")}
               >
                 {t("continueWithLanguage")}
               </Button>
@@ -218,6 +235,144 @@ export function LocationSetupDialog({
                 }
               >
                 {locale === "he" ? "🇺🇸 Switch to English" : "🇮🇱 עבור לעברית"}
+              </Button>
+            </div>
+          </>
+        )}
+
+        {/* Step 2: Study Path Selection */}
+        {step === "path" && (
+          <>
+            <div className="text-5xl mb-4">📚</div>
+            <p className="text-gray-600 mb-6">{t("pathDescription")}</p>
+
+            <div className="space-y-3 mb-6">
+              {/* 3 Chapters option */}
+              <button
+                type="button"
+                onClick={() => setSelectedPath("rambam3")}
+                className={`
+                  w-full flex items-center justify-between p-4 rounded-lg border-2 transition-all text-start
+                  ${
+                    selectedPath === "rambam3"
+                      ? "border-blue-600 bg-blue-50"
+                      : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                  }
+                `}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                      selectedPath === "rambam3"
+                        ? "border-blue-600"
+                        : "border-gray-300"
+                    }`}
+                  >
+                    {selectedPath === "rambam3" && (
+                      <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />
+                    )}
+                  </div>
+                  <div>
+                    <div
+                      className={`font-medium ${selectedPath === "rambam3" ? "text-blue-600" : ""}`}
+                    >
+                      {tPaths("rambam3.label")}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {tPaths("rambam3.description")}
+                    </div>
+                  </div>
+                </div>
+              </button>
+
+              {/* 1 Chapter option */}
+              <button
+                type="button"
+                onClick={() => setSelectedPath("rambam1")}
+                className={`
+                  w-full flex items-center justify-between p-4 rounded-lg border-2 transition-all text-start
+                  ${
+                    selectedPath === "rambam1"
+                      ? "border-blue-600 bg-blue-50"
+                      : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                  }
+                `}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                      selectedPath === "rambam1"
+                        ? "border-blue-600"
+                        : "border-gray-300"
+                    }`}
+                  >
+                    {selectedPath === "rambam1" && (
+                      <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />
+                    )}
+                  </div>
+                  <div>
+                    <div
+                      className={`font-medium ${selectedPath === "rambam1" ? "text-blue-600" : ""}`}
+                    >
+                      {tPaths("rambam1.label")}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {tPaths("rambam1.description")}
+                    </div>
+                  </div>
+                </div>
+              </button>
+
+              {/* Sefer HaMitzvot option */}
+              <button
+                type="button"
+                onClick={() => setSelectedPath("mitzvot")}
+                className={`
+                  w-full flex items-center justify-between p-4 rounded-lg border-2 transition-all text-start
+                  ${
+                    selectedPath === "mitzvot"
+                      ? "border-blue-600 bg-blue-50"
+                      : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                  }
+                `}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                      selectedPath === "mitzvot"
+                        ? "border-blue-600"
+                        : "border-gray-300"
+                    }`}
+                  >
+                    {selectedPath === "mitzvot" && (
+                      <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />
+                    )}
+                  </div>
+                  <div>
+                    <div
+                      className={`font-medium ${selectedPath === "mitzvot" ? "text-blue-600" : ""}`}
+                    >
+                      {tPaths("mitzvot.label")}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {tPaths("mitzvot.description")}
+                    </div>
+                  </div>
+                </div>
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <Button variant="primary" fullWidth onClick={handlePathContinue}>
+                {t("continue")}
+              </Button>
+
+              <Button
+                variant="secondary"
+                fullWidth
+                onClick={handleBackToLanguage}
+              >
+                ← {t("changeLanguage")}
               </Button>
             </div>
           </>
@@ -262,9 +417,9 @@ export function LocationSetupDialog({
               <Button
                 variant="secondary"
                 fullWidth
-                onClick={handleBackToLanguage}
+                onClick={() => setStep("path")}
               >
-                ← {t("changeLanguage")}
+                ← {t("back")}
               </Button>
             </div>
 
@@ -272,7 +427,7 @@ export function LocationSetupDialog({
           </>
         )}
 
-        {/* Step 3: Manual City Entry */}
+        {/* Step 4: Manual City Entry */}
         {step === "manual" && (
           <>
             <svg
