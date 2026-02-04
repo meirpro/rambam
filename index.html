@@ -290,6 +290,44 @@
       color: #6b7280;
     }
 
+    /* Chapter Divider */
+    .chapter-divider {
+      text-align: center;
+      margin: 1.5rem 0 1rem;
+      position: relative;
+    }
+
+    .chapter-divider::before,
+    .chapter-divider::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      width: 40%;
+      height: 1px;
+      background: linear-gradient(to right, transparent, #d1d5db, transparent);
+    }
+
+    .chapter-divider::before {
+      left: 0;
+    }
+
+    .chapter-divider::after {
+      right: 0;
+    }
+
+    .chapter-divider span {
+      background: white;
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #2563eb;
+      border: 1px solid #e5e7eb;
+      border-radius: 20px;
+      display: inline-block;
+      position: relative;
+      z-index: 1;
+    }
+
     /* Settings Panel */
     .settings-panel {
       position: fixed;
@@ -792,19 +830,28 @@
       const data = await res.json();
 
       let halakhot = [];
+      let chapterBoundaries = []; // Array of indices where new chapters start
       const text = data.versions[0].text;
 
       if (data.isSpanning) {
-        // Flatten chapters × halakhot array
-        halakhot = text.flat();
+        // Track chapter boundaries while flattening
+        let currentIndex = 0;
+        text.forEach((chapter, chapterNum) => {
+          if (chapterNum > 0) {
+            chapterBoundaries.push(currentIndex);
+          }
+          halakhot.push(...chapter);
+          currentIndex += chapter.length;
+        });
       } else if (Array.isArray(text)) {
         halakhot = text;
       } else {
         halakhot = [text];
       }
 
-      textCache.set(ref, halakhot);
-      return halakhot;
+      const result = { halakhot, chapterBoundaries };
+      textCache.set(ref, result);
+      return result;
     }
 
     // ============================================================================
@@ -823,7 +870,7 @@
       const results = await Promise.allSettled(
         missing.map(async (date) => {
           const { he, ref } = await fetchCalendar(date);
-          const halakhot = await fetchText(ref);
+          const { halakhot } = await fetchText(ref);
           return { date, he, ref, count: halakhot.length };
         })
       );
@@ -1030,12 +1077,30 @@
       container.innerHTML = '<div class="loading">טוען הלכות...</div>';
 
       try {
-        const halakhot = await fetchText(ref);
+        const { halakhot, chapterBoundaries } = await fetchText(ref);
         const done = getDone();
 
         container.innerHTML = '';
 
+        // Add first chapter label if there are multiple chapters
+        if (chapterBoundaries.length > 0) {
+          const firstDivider = document.createElement('div');
+          firstDivider.className = 'chapter-divider';
+          firstDivider.innerHTML = `<span>פרק א</span>`;
+          container.appendChild(firstDivider);
+        }
+
+        let currentChapter = 1;
         halakhot.forEach((text, index) => {
+          // Add chapter divider if this is a chapter boundary
+          if (chapterBoundaries.includes(index)) {
+            currentChapter++;
+            const divider = document.createElement('div');
+            divider.className = 'chapter-divider';
+            divider.innerHTML = `<span>פרק ${toHebrewLetter(currentChapter)}</span>`;
+            container.appendChild(divider);
+          }
+
           const isDone = done[`${date}:${index}`];
 
           const card = document.createElement('div');
@@ -1154,6 +1219,34 @@
 
         // Swipe right: mark as done
         if (isSwiping && deltaX > 100 && !isCompleted) {
+          // Check if there are incomplete cards above this one
+          const done = getDone();
+          const container = card.parentElement;
+          const cards = Array.from(container.querySelectorAll('.halakha-card'));
+          const currentIndex = cards.indexOf(card);
+
+          const incompleteAbove = [];
+          for (let i = 0; i < currentIndex; i++) {
+            const aboveCard = cards[i];
+            const aboveIndex = parseInt(aboveCard.dataset.index);
+            if (!done[`${date}:${aboveIndex}`]) {
+              incompleteAbove.push(aboveIndex);
+            }
+          }
+
+          if (incompleteAbove.length > 0) {
+            if (confirm(`יש ${incompleteAbove.length} הלכות לא מושלמות למעלה. האם לסמן גם אותן כהושלם?`)) {
+              // Mark all incomplete cards above as done
+              incompleteAbove.forEach(idx => {
+                markDone(date, idx);
+                const cardToMark = cards.find(c => parseInt(c.dataset.index) === idx);
+                if (cardToMark) {
+                  cardToMark.classList.add('completed');
+                }
+              });
+            }
+          }
+
           card.classList.add('completed');
           markDone(date, index);
           renderStats();
