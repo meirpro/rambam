@@ -10,14 +10,21 @@ import { fetchSunset } from "@/services/hebcal";
 import { getTodayInIsrael } from "@/lib/dates";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
-import type { StudyPath } from "@/types";
+import type { StudyPath, TextLanguage } from "@/types";
 
 interface LocationSetupDialogProps {
   isOpen: boolean;
   onComplete: () => void;
 }
 
-type Step = "language" | "path" | "choice" | "manual" | "loading";
+type Step =
+  | "language"
+  | "path"
+  | "textLang"
+  | "autoMark"
+  | "choice"
+  | "manual"
+  | "loading";
 
 /**
  * Dialog for initial app setup:
@@ -34,12 +41,16 @@ export function LocationSetupDialog({
   const pathname = usePathname();
   const t = useTranslations("locationDialog");
   const tPaths = useTranslations("paths");
+  const tLang = useTranslations("language");
 
   // Start with language step if not yet selected, otherwise location choice
   const [step, setStep] = useState<Step>("language");
   const [manualCity, setManualCity] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [selectedPath, setSelectedPath] = useState<StudyPath>("rambam3");
+  const [selectedTextLang, setSelectedTextLang] =
+    useState<TextLanguage>("hebrew");
+  const [selectedAutoMark, setSelectedAutoMark] = useState(false);
 
   const setLocation = useLocationStore((state) => state.setLocation);
   const setSunset = useLocationStore((state) => state.setSunset);
@@ -47,6 +58,8 @@ export function LocationSetupDialog({
     (state) => state.markLocationSetup,
   );
   const setStudyPath = useAppStore((state) => state.setStudyPath);
+  const setTextLanguage = useAppStore((state) => state.setTextLanguage);
+  const setAutoMarkPrevious = useAppStore((state) => state.setAutoMarkPrevious);
 
   // Handle language selection
   const handleSelectLanguage = useCallback(
@@ -62,11 +75,23 @@ export function LocationSetupDialog({
     [locale, pathname, router],
   );
 
-  // Handle path selection and continue to location
+  // Handle path selection and continue to text language
   const handlePathContinue = useCallback(() => {
     setStudyPath(selectedPath);
-    setStep("choice");
+    setStep("textLang");
   }, [selectedPath, setStudyPath]);
+
+  // Handle text language selection and continue to auto-mark
+  const handleTextLangContinue = useCallback(() => {
+    setTextLanguage(selectedTextLang);
+    setStep("autoMark");
+  }, [selectedTextLang, setTextLanguage]);
+
+  // Handle auto-mark selection and continue to location
+  const handleAutoMarkContinue = useCallback(() => {
+    setAutoMarkPrevious(selectedAutoMark);
+    setStep("choice");
+  }, [selectedAutoMark, setAutoMarkPrevious]);
 
   // Handle "Use My Location" - will trigger browser permission
   const handleUseMyLocation = useCallback(async () => {
@@ -205,7 +230,11 @@ export function LocationSetupDialog({
           ? t("languageTitle")
           : step === "path"
             ? t("pathTitle")
-            : t("title")
+            : step === "textLang"
+              ? t("textLangTitle")
+              : step === "autoMark"
+                ? t("autoMarkTitle")
+                : t("title")
       }
       onClose={() => {}}
     >
@@ -378,6 +407,223 @@ export function LocationSetupDialog({
           </>
         )}
 
+        {/* Step 3: Text Display Language */}
+        {step === "textLang" && (
+          <>
+            <div className="text-5xl mb-4">📖</div>
+            <p className="text-gray-600 mb-6">{t("textLangDescription")}</p>
+
+            <div className="space-y-3 mb-6">
+              {/* Hebrew only */}
+              <button
+                type="button"
+                onClick={() => setSelectedTextLang("hebrew")}
+                className={`
+                  w-full flex items-center gap-3 p-4 rounded-lg border-2 transition-all text-start
+                  ${
+                    selectedTextLang === "hebrew"
+                      ? "border-blue-600 bg-blue-50"
+                      : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                  }
+                `}
+              >
+                <div
+                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                    selectedTextLang === "hebrew"
+                      ? "border-blue-600"
+                      : "border-gray-300"
+                  }`}
+                >
+                  {selectedTextLang === "hebrew" && (
+                    <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />
+                  )}
+                </div>
+                <span
+                  className={`font-medium ${selectedTextLang === "hebrew" ? "text-blue-600" : ""}`}
+                >
+                  {tLang("hebrew")}
+                </span>
+              </button>
+
+              {/* English only */}
+              <button
+                type="button"
+                onClick={() => setSelectedTextLang("english")}
+                className={`
+                  w-full flex items-center gap-3 p-4 rounded-lg border-2 transition-all text-start
+                  ${
+                    selectedTextLang === "english"
+                      ? "border-blue-600 bg-blue-50"
+                      : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                  }
+                `}
+              >
+                <div
+                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                    selectedTextLang === "english"
+                      ? "border-blue-600"
+                      : "border-gray-300"
+                  }`}
+                >
+                  {selectedTextLang === "english" && (
+                    <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />
+                  )}
+                </div>
+                <span
+                  className={`font-medium ${selectedTextLang === "english" ? "text-blue-600" : ""}`}
+                >
+                  {tLang("english")}
+                </span>
+              </button>
+
+              {/* Both */}
+              <button
+                type="button"
+                onClick={() => setSelectedTextLang("both")}
+                className={`
+                  w-full flex items-center gap-3 p-4 rounded-lg border-2 transition-all text-start
+                  ${
+                    selectedTextLang === "both"
+                      ? "border-blue-600 bg-blue-50"
+                      : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                  }
+                `}
+              >
+                <div
+                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                    selectedTextLang === "both"
+                      ? "border-blue-600"
+                      : "border-gray-300"
+                  }`}
+                >
+                  {selectedTextLang === "both" && (
+                    <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />
+                  )}
+                </div>
+                <span
+                  className={`font-medium ${selectedTextLang === "both" ? "text-blue-600" : ""}`}
+                >
+                  {tLang("both")}
+                </span>
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <Button
+                variant="primary"
+                fullWidth
+                onClick={handleTextLangContinue}
+              >
+                {t("continue")}
+              </Button>
+
+              <Button
+                variant="secondary"
+                fullWidth
+                onClick={() => setStep("path")}
+              >
+                ← {t("back")}
+              </Button>
+            </div>
+          </>
+        )}
+
+        {/* Step 4: Auto-Mark Previous */}
+        {step === "autoMark" && (
+          <>
+            <div className="text-5xl mb-4">✓</div>
+            <p className="text-gray-600 mb-6">{t("autoMarkDescription")}</p>
+
+            <div className="space-y-3 mb-6">
+              {/* Off (default) */}
+              <button
+                type="button"
+                onClick={() => setSelectedAutoMark(false)}
+                className={`
+                  w-full flex items-center gap-3 p-4 rounded-lg border-2 transition-all text-start
+                  ${
+                    !selectedAutoMark
+                      ? "border-blue-600 bg-blue-50"
+                      : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                  }
+                `}
+              >
+                <div
+                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                    !selectedAutoMark ? "border-blue-600" : "border-gray-300"
+                  }`}
+                >
+                  {!selectedAutoMark && (
+                    <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />
+                  )}
+                </div>
+                <div>
+                  <div
+                    className={`font-medium ${!selectedAutoMark ? "text-blue-600" : ""}`}
+                  >
+                    {t("autoMarkOff")}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {t("autoMarkOffDescription")}
+                  </div>
+                </div>
+              </button>
+
+              {/* On */}
+              <button
+                type="button"
+                onClick={() => setSelectedAutoMark(true)}
+                className={`
+                  w-full flex items-center gap-3 p-4 rounded-lg border-2 transition-all text-start
+                  ${
+                    selectedAutoMark
+                      ? "border-blue-600 bg-blue-50"
+                      : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                  }
+                `}
+              >
+                <div
+                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                    selectedAutoMark ? "border-blue-600" : "border-gray-300"
+                  }`}
+                >
+                  {selectedAutoMark && (
+                    <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />
+                  )}
+                </div>
+                <div>
+                  <div
+                    className={`font-medium ${selectedAutoMark ? "text-blue-600" : ""}`}
+                  >
+                    {t("autoMarkOn")}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {t("autoMarkOnDescription")}
+                  </div>
+                </div>
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <Button
+                variant="primary"
+                fullWidth
+                onClick={handleAutoMarkContinue}
+              >
+                {t("continue")}
+              </Button>
+
+              <Button
+                variant="secondary"
+                fullWidth
+                onClick={() => setStep("textLang")}
+              >
+                ← {t("back")}
+              </Button>
+            </div>
+          </>
+        )}
+
         {/* Loading state */}
         {step === "loading" && (
           <div className="py-8">
@@ -417,7 +663,7 @@ export function LocationSetupDialog({
               <Button
                 variant="secondary"
                 fullWidth
-                onClick={() => setStep("path")}
+                onClick={() => setStep("autoMark")}
               >
                 ← {t("back")}
               </Button>
@@ -427,7 +673,7 @@ export function LocationSetupDialog({
           </>
         )}
 
-        {/* Step 4: Manual City Entry */}
+        {/* Step 6: Manual City Entry */}
         {step === "manual" && (
           <>
             <svg
