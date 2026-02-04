@@ -5,6 +5,15 @@
 import type { SunsetData } from "@/types";
 
 /**
+ * Parse a YYYY-MM-DD string to a Date in local timezone
+ * (avoids UTC interpretation issues)
+ */
+function parseLocalDate(dateStr: string): Date {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+/**
  * Generate an array of date strings between start and end (inclusive)
  * @param start - Start date (YYYY-MM-DD)
  * @param end - End date (YYYY-MM-DD)
@@ -12,8 +21,8 @@ import type { SunsetData } from "@/types";
  */
 export function dateRange(start: string, end: string): string[] {
   const dates: string[] = [];
-  const current = new Date(start);
-  const endDate = new Date(end);
+  const current = parseLocalDate(start);
+  const endDate = parseLocalDate(end);
 
   while (current <= endDate) {
     dates.push(formatDateString(current));
@@ -115,18 +124,19 @@ export function isFutureDate(
 }
 
 /**
- * Parse a date string to Date object
+ * Parse a date string to Date object (in local timezone)
  */
 export function parseDate(dateStr: string): Date {
-  return new Date(dateStr);
+  const [year, month, day] = dateStr.split("-").map(Number);
+  return new Date(year, month - 1, day);
 }
 
 /**
  * Get the number of days between two dates
  */
 export function daysBetween(start: string, end: string): number {
-  const startDate = new Date(start);
-  const endDate = new Date(end);
+  const startDate = parseDate(start);
+  const endDate = parseDate(end);
   const diffTime = endDate.getTime() - startDate.getTime();
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 }
