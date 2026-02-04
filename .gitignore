@@ -43,3 +43,4 @@ next-env.d.ts
 # reference files
 *.mhtml
 .playwright-mcp/
+.claude/settings.local.json
