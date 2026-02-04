@@ -826,6 +826,14 @@
         </div>
 
         <div class="settings-section">
+          <label class="settings-label">סימון הלכות קודמות כנקראו</label>
+          <div class="toggle-container">
+            <button class="toggle-btn auto-mark active" data-value="true">כן</button>
+            <button class="toggle-btn auto-mark" data-value="false">לא</button>
+          </div>
+        </div>
+
+        <div class="settings-section">
           <label class="settings-label">מיקום ושקיעה</label>
           <div style="display: flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem; background: #f9fafb; border-radius: 8px; font-size: 0.875rem; color: #374151;">
             <div id="locationText">מיקום: תל אביב (ברירת מחדל)</div>
@@ -935,6 +943,15 @@
 
     function setChapterCount(count) {
       localStorage.setItem('rambam_chapters', count.toString());
+    }
+
+    function getAutoMark() {
+      const stored = localStorage.getItem('rambam_auto_mark');
+      return stored === null ? true : stored === 'true';
+    }
+
+    function setAutoMark(enabled) {
+      localStorage.setItem('rambam_auto_mark', enabled.toString());
     }
 
     function isFirstVisit() {
@@ -1605,17 +1622,15 @@
           }
         }
 
-        if (incompleteAbove.length > 0) {
-          if (confirm(`יש ${incompleteAbove.length} הלכות לא מושלמות למעלה. האם לסמן גם אותן כהושלם?`)) {
-            // Mark all incomplete cards above as done
-            incompleteAbove.forEach(idx => {
-              markDone(date, idx);
-              const cardToMark = cards.find(c => parseInt(c.dataset.index) === idx);
-              if (cardToMark) {
-                cardToMark.classList.add('completed');
-              }
-            });
-          }
+        if (incompleteAbove.length > 0 && getAutoMark()) {
+          // Auto-mark all incomplete cards above as done
+          incompleteAbove.forEach(idx => {
+            markDone(date, idx);
+            const cardToMark = cards.find(c => parseInt(c.dataset.index) === idx);
+            if (cardToMark) {
+              cardToMark.classList.add('completed');
+            }
+          });
         }
 
         card.classList.add('completed');
@@ -1798,7 +1813,7 @@
     document.getElementById('overlay').addEventListener('click', closeSettings);
 
     // Chapter count toggle
-    document.querySelectorAll('.toggle-btn').forEach(btn => {
+    document.querySelectorAll('.toggle-btn:not(.auto-mark)').forEach(btn => {
       btn.addEventListener('click', () => {
         const value = parseInt(btn.dataset.value);
         if (value !== getChapterCount()) {
@@ -1813,13 +1828,32 @@
 
     // Set initial active toggle button
     const currentChapterCount = getChapterCount();
-    document.querySelectorAll('.toggle-btn').forEach(btn => {
+    document.querySelectorAll('.toggle-btn:not(.auto-mark)').forEach(btn => {
       const value = parseInt(btn.dataset.value);
       if (value === currentChapterCount) {
         btn.classList.add('active');
       } else {
         btn.classList.remove('active');
       }
+    });
+
+    // Auto-mark toggle
+    const currentAutoMark = getAutoMark();
+    document.querySelectorAll('.toggle-btn.auto-mark').forEach(btn => {
+      const value = btn.dataset.value === 'true';
+      if (value === currentAutoMark) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+
+      btn.addEventListener('click', () => {
+        const newValue = btn.dataset.value === 'true';
+        setAutoMark(newValue);
+        document.querySelectorAll('.toggle-btn.auto-mark').forEach(b => {
+          b.classList.toggle('active', b.dataset.value === btn.dataset.value);
+        });
+      });
     });
 
     document.getElementById('resetBtn').addEventListener('click', () => {
