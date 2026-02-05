@@ -25,13 +25,18 @@
     "resetPath": "אפס מסלול נוכחי",
     "resetAll": "איפוס מלא",
     "resetWarning": "פעולה זו תמחק את ההתקדמות שלך",
-    "changelog": "רשימת שינויים",
+    "changelog": "רשימת שינויים ותודות",
     "version": "גרסה",
     "cycle46": "מחזור 46",
     "yes": "כן",
     "no": "לא",
     "close": "סגור",
-    "progress": "התקדמות"
+    "progress": "התקדמות",
+    "dataManagement": "ניהול נתונים",
+    "exportData": "ייצוא",
+    "importData": "ייבוא",
+    "importSuccess": "הנתונים יובאו בהצלחה!",
+    "importError": "שגיאה בייבוא הקובץ"
   },
   "welcome": {
     "title": "ברוכים הבאים!",

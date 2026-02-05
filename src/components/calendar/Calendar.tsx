@@ -4,27 +4,26 @@ import { useState, useCallback, useEffect, useMemo } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { CalendarHeader } from "./CalendarHeader";
 import { CalendarGrid } from "./CalendarGrid";
-import { useMonthCompletion } from "@/hooks/useMonthCompletion";
+import { useHebrewMonthCompletion } from "@/hooks/useMonthCompletion";
+import {
+  getHebrewMonthData,
+  getNextHebrewMonth,
+  getPrevHebrewMonth,
+  type HebrewMonthData,
+} from "@/lib/hebrewCalendar";
 
 interface CalendarProps {
   isOpen: boolean;
   onClose: () => void;
-  selectedDate: string; // YYYY-MM-DD
+  selectedDate: string; // YYYY-MM-DD (Gregorian)
   onDateSelect: (date: string) => void;
   today: string;
   startDate: string; // Cycle start (e.g., 2026-02-03)
 }
 
 /**
- * Parse a YYYY-MM-DD string to year and month
- */
-function parseYearMonth(dateStr: string): { year: number; month: number } {
-  const [year, month] = dateStr.split("-").map(Number);
-  return { year, month: month - 1 }; // month is 0-indexed
-}
-
-/**
  * Calendar modal component for date selection with completion indicators
+ * Displays Hebrew calendar months with gematriya day numbers
  */
 export function Calendar({
   isOpen,
@@ -38,53 +37,40 @@ export function Calendar({
   const t = useTranslations("calendar");
   const isHebrew = locale === "he";
 
-  // Compute initial month from the date we want to show
+  // Compute initial Hebrew month from the target date
   const targetDate = selectedDate || today;
-  const initialMonth = useMemo(() => parseYearMonth(targetDate), [targetDate]);
+  const initialHebrewMonth = useMemo(() => {
+    const [year, month, day] = targetDate.split("-").map(Number);
+    return getHebrewMonthData(new Date(year, month - 1, day));
+  }, [targetDate]);
 
-  // Track displayed month with offset from initial
-  // This resets when targetDate changes (which happens when calendar opens with new selection)
-  const [monthOffset, setMonthOffset] = useState(0);
+  // Track current Hebrew month data
+  const [hebrewMonth, setHebrewMonth] =
+    useState<HebrewMonthData>(initialHebrewMonth);
 
-  // Reset offset when the target date changes
+  // Reset to initial month when target date changes
   const [lastTargetDate, setLastTargetDate] = useState(targetDate);
   if (targetDate !== lastTargetDate) {
-    setMonthOffset(0);
+    const [year, month, day] = targetDate.split("-").map(Number);
+    setHebrewMonth(getHebrewMonthData(new Date(year, month - 1, day)));
     setLastTargetDate(targetDate);
   }
 
-  // Calculate actual displayed year/month from initial + offset
-  const { displayedYear, displayedMonth } = useMemo(() => {
-    let month = initialMonth.month + monthOffset;
-    let year = initialMonth.year;
+  // Get completion data for the displayed Hebrew month
+  // Uses Gregorian dates from the Hebrew month's days array
+  const completionMap = useHebrewMonthCompletion(hebrewMonth.days);
 
-    // Handle year overflow/underflow
-    while (month < 0) {
-      month += 12;
-      year -= 1;
-    }
-    while (month > 11) {
-      month -= 12;
-      year += 1;
-    }
-
-    return { displayedYear: year, displayedMonth: month };
-  }, [initialMonth, monthOffset]);
-
-  // Get completion data for the displayed month
-  const completionMap = useMonthCompletion(displayedYear, displayedMonth);
-
-  // Navigate to previous month
+  // Navigate to previous Hebrew month
   const handlePreviousMonth = useCallback(() => {
-    setMonthOffset((prev) => prev - 1);
+    setHebrewMonth((current) => getPrevHebrewMonth(current));
   }, []);
 
-  // Navigate to next month
+  // Navigate to next Hebrew month
   const handleNextMonth = useCallback(() => {
-    setMonthOffset((prev) => prev + 1);
+    setHebrewMonth((current) => getNextHebrewMonth(current));
   }, []);
 
-  // Handle date selection
+  // Handle date selection (receives Gregorian date from grid)
   const handleDateSelect = useCallback(
     (date: string) => {
       // Don't select future dates or dates before cycle start
@@ -157,16 +143,15 @@ export function Calendar({
 
           {/* Month navigation header */}
           <CalendarHeader
-            year={displayedYear}
-            month={displayedMonth}
+            hebrewMonthName={hebrewMonth.monthName}
+            hebrewYearDisplay={hebrewMonth.yearDisplay}
             onPreviousMonth={handlePreviousMonth}
             onNextMonth={handleNextMonth}
           />
 
           {/* Calendar grid */}
           <CalendarGrid
-            year={displayedYear}
-            month={displayedMonth}
+            hebrewDays={hebrewMonth.days}
             today={today}
             selectedDate={selectedDate}
             startDate={startDate}

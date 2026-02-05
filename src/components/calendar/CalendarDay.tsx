@@ -4,7 +4,8 @@ import type { DayCompletionStatus } from "@/hooks/useMonthCompletion";
 
 interface CalendarDayProps {
   date: string;
-  dayOfMonth: number;
+  /** Day display string (gematriya for Hebrew, number for English) */
+  dayDisplay: string;
   isToday: boolean;
   isSelected: boolean;
   isFuture: boolean;
@@ -18,7 +19,7 @@ interface CalendarDayProps {
  * Shows completion status with visual indicators
  */
 export function CalendarDay({
-  dayOfMonth,
+  dayDisplay,
   isToday,
   isSelected,
   isFuture,
@@ -57,7 +58,7 @@ export function CalendarDay({
       onClick={onClick}
       disabled={isDisabled}
       className={containerClasses}
-      aria-label={`Day ${dayOfMonth}`}
+      aria-label={`Day ${dayDisplay}`}
       aria-current={isToday ? "date" : undefined}
       aria-pressed={isSelected}
     >
@@ -68,7 +69,7 @@ export function CalendarDay({
 
       {/* Day number */}
       <span className={isComplete && !isSelected ? "font-bold" : ""}>
-        {dayOfMonth}
+        {dayDisplay}
       </span>
 
       {/* Completion indicator */}

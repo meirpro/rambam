@@ -13,6 +13,7 @@
     "cf:deploy": "opennextjs-cloudflare deploy"
   },
   "dependencies": {
+    "@hebcal/core": "^6.0.8",
     "@opennextjs/cloudflare": "^1.16.2",
     "idb": "^8.0.3",
     "next": "16.1.6",

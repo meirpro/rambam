@@ -1,13 +1,13 @@
 "use client";
 
-import { useMemo } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { CalendarDay, EmptyDay } from "./CalendarDay";
 import type { DayCompletionStatus } from "@/hooks/useMonthCompletion";
+import type { HebrewDayData } from "@/lib/hebrewCalendar";
 
 interface CalendarGridProps {
-  year: number;
-  month: number; // 0-indexed
+  /** Array of Hebrew days for the current month */
+  hebrewDays: HebrewDayData[];
   today: string;
   selectedDate: string;
   startDate: string;
@@ -16,18 +16,11 @@ interface CalendarGridProps {
 }
 
 /**
- * Format a date as YYYY-MM-DD
- */
-function formatDate(year: number, month: number, day: number): string {
-  return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-}
-
-/**
- * Calendar grid showing month with day headers and completion indicators
+ * Calendar grid showing Hebrew month with day headers and completion indicators
+ * Days are displayed using Hebrew gematriya (א׳, ב׳, ג׳... כ״ט, ל׳)
  */
 export function CalendarGrid({
-  year,
-  month,
+  hebrewDays,
   today,
   selectedDate,
   startDate,
@@ -41,33 +34,27 @@ export function CalendarGrid({
   // Day names - Hebrew weeks start on Sunday
   const dayNames: string[] = t.raw("dayNamesShort") as string[];
 
-  // Calculate grid layout
-  const gridData = useMemo(() => {
-    // First day of the month (0 = Sunday, 6 = Saturday)
-    const firstDay = new Date(year, month, 1).getDay();
-    // Number of days in the month
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
+  // Build grid with empty cells for alignment
+  // First day of Hebrew month tells us where to start
+  const firstDayOfWeek = hebrewDays.length > 0 ? hebrewDays[0].dayOfWeek : 0;
 
-    // Build grid rows
-    const days: (number | null)[] = [];
+  // Create grid data with leading empty cells
+  const gridData: (HebrewDayData | null)[] = [];
 
-    // Add empty cells for days before the 1st
-    for (let i = 0; i < firstDay; i++) {
-      days.push(null);
-    }
+  // Add empty cells before the 1st of the month
+  for (let i = 0; i < firstDayOfWeek; i++) {
+    gridData.push(null);
+  }
 
-    // Add days of the month
-    for (let day = 1; day <= daysInMonth; day++) {
-      days.push(day);
-    }
+  // Add the actual days
+  for (const day of hebrewDays) {
+    gridData.push(day);
+  }
 
-    // Pad to complete the last row
-    while (days.length % 7 !== 0) {
-      days.push(null);
-    }
-
-    return days;
-  }, [year, month]);
+  // Pad to complete the last row
+  while (gridData.length % 7 !== 0) {
+    gridData.push(null);
+  }
 
   return (
     <div className="p-4">
@@ -98,17 +85,20 @@ export function CalendarGrid({
             return <EmptyDay key={`empty-${index}`} />;
           }
 
-          const dateStr = formatDate(year, month, day);
+          const dateStr = day.gregorianDate;
           const isToday = dateStr === today;
           const isSelected = dateStr === selectedDate;
           const isFuture = dateStr > today;
           const isBeforeStart = dateStr < startDate;
 
+          // Display Hebrew day number (gematriya) or English number based on locale
+          const dayDisplay = isHebrew ? day.display.he : day.display.en;
+
           return (
             <CalendarDay
               key={dateStr}
               date={dateStr}
-              dayOfMonth={day}
+              dayDisplay={dayDisplay}
               isToday={isToday}
               isSelected={isSelected}
               isFuture={isFuture}

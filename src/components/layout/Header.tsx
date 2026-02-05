@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
+import { useOfflineStatus } from "@/hooks/useOfflineStatus";
 
 interface HeaderProps {
   onSettingsClick: () => void;
@@ -20,15 +21,28 @@ export function Header({
   isViewingOtherDate = false,
 }: HeaderProps) {
   const t = useTranslations("app");
+  const tOffline = useTranslations("offline");
+  const locale = useLocale();
+  const isHebrew = locale === "he";
   const [datePickerValue, setDatePickerValue] = useState("");
+  const [showOfflineTooltip, setShowOfflineTooltip] = useState(false);
+  const { isOffline } = useOfflineStatus();
 
-  const headerBg = isViewingOtherDate
-    ? "bg-gradient-to-br from-red-600 to-red-700"
-    : "bg-gradient-to-br from-blue-600 to-blue-700";
+  // Update body background based on state
+  // Priority: viewing other date (red) > offline (amber) > normal (blue)
+  useEffect(() => {
+    const bgColor = isViewingOtherDate
+      ? "#dc2626" // red-600
+      : isOffline
+        ? "#f59e0b" // amber-500
+        : "#2563eb"; // blue-600
+    document.documentElement.style.setProperty("--app-bg", bgColor);
+  }, [isViewingOtherDate, isOffline]);
 
   return (
     <header
-      className={`${headerBg} text-white px-4 py-3 flex items-center justify-between shadow-md sticky top-0 z-[101] transition-colors duration-300`}
+      className="text-white px-4 py-3 flex items-center justify-between sticky top-0 z-[101] transition-colors duration-300"
+      style={{ backgroundColor: "var(--app-bg)" }}
     >
       <div className="flex items-center gap-3">
         <Image
@@ -54,6 +68,50 @@ export function Header({
           id="headerDatePicker"
           aria-label="בחר תאריך"
         />
+
+        {/* Offline indicator */}
+        {isOffline && (
+          <div className="relative">
+            <button
+              onClick={() => setShowOfflineTooltip(!showOfflineTooltip)}
+              className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 active:bg-white/40 transition-colors"
+              aria-label={isHebrew ? "מצב לא מקוון" : "Offline mode"}
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <line x1="1" y1="1" x2="23" y2="23" />
+                <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55" />
+                <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39" />
+                <path d="M10.71 5.05A16 16 0 0 1 22.58 9" />
+                <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88" />
+                <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+                <line x1="12" y1="20" x2="12.01" y2="20" />
+              </svg>
+            </button>
+            {/* Tooltip */}
+            {showOfflineTooltip && (
+              <>
+                <div
+                  className="fixed inset-0 z-[200]"
+                  onClick={() => setShowOfflineTooltip(false)}
+                />
+                <div
+                  className={`absolute top-12 ${isHebrew ? "right-0" : "left-0"} bg-gray-800 text-white text-sm px-3 py-2 rounded-lg shadow-lg z-[201] whitespace-nowrap`}
+                >
+                  {tOffline("indicator")}
+                </div>
+              </>
+            )}
+          </div>
+        )}
 
         {/* Install button */}
         {showInstallButton && onInstallClick && (

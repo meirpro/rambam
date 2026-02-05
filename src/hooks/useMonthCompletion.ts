@@ -6,12 +6,74 @@
 import { useMemo } from "react";
 import { useAppStore } from "@/stores/appStore";
 import type { StudyPath } from "@/types";
+import type { HebrewDayData } from "@/lib/hebrewCalendar";
 
 export interface DayCompletionStatus {
   percent: number;
   isComplete: boolean;
   doneCount: number;
   totalCount: number;
+}
+
+/**
+ * Hook to compute completion status for days in a Hebrew month
+ * Takes an array of Hebrew day data (which includes Gregorian dates)
+ * Returns a Record mapping Gregorian date strings to their completion status
+ *
+ * @param hebrewDays - Array of Hebrew day data from getHebrewMonthData
+ */
+export function useHebrewMonthCompletion(
+  hebrewDays: HebrewDayData[],
+): Record<string, DayCompletionStatus> {
+  const studyPath = useAppStore((state) => state.studyPath);
+  const days = useAppStore((state) => state.days);
+  const done = useAppStore((state) => state.done);
+
+  return useMemo(() => {
+    const result: Record<string, DayCompletionStatus> = {};
+    const pathDays = days[studyPath] || {};
+    const pathPrefix = `${studyPath}:`;
+
+    // Pre-filter done keys by path prefix for efficiency
+    const pathDoneKeys = Object.keys(done).filter((key) =>
+      key.startsWith(pathPrefix),
+    );
+
+    // Build date-indexed completion counts
+    // Key format: "path:date:index"
+    const dateCompletionCounts: Record<string, number> = {};
+
+    for (const key of pathDoneKeys) {
+      // Extract date from key "path:YYYY-MM-DD:index"
+      const parts = key.split(":");
+      if (parts.length === 3) {
+        const date = parts[1];
+        dateCompletionCounts[date] = (dateCompletionCounts[date] || 0) + 1;
+      }
+    }
+
+    // Compute status for each day in the Hebrew month
+    for (const dayData of hebrewDays) {
+      const dateStr = dayData.gregorianDate;
+      const dayInfo = pathDays[dateStr];
+
+      if (dayInfo && dayInfo.count > 0) {
+        const doneCount = dateCompletionCounts[dateStr] || 0;
+        const totalCount = dayInfo.count;
+        const percent = Math.round((doneCount / totalCount) * 100);
+
+        result[dateStr] = {
+          percent,
+          isComplete: doneCount >= totalCount,
+          doneCount,
+          totalCount,
+        };
+      }
+      // If no dayInfo, the date won't have an entry (null completion status)
+    }
+
+    return result;
+  }, [studyPath, days, done, hebrewDays]);
 }
 
 /**
@@ -30,7 +92,7 @@ function getDaysInMonth(year: number, month: number): number {
 }
 
 /**
- * Hook to compute completion status for all days in a month
+ * Hook to compute completion status for all days in a Gregorian month
  * Returns a Record mapping date strings to their completion status
  *
  * @param year - Full year (e.g., 2026)

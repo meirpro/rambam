@@ -68,7 +68,7 @@ export default async function LocaleLayout({
         <link rel="preconnect" href="https://www.hebcal.com" />
       </head>
       <body
-        className={`${notoSansHebrew.variable} font-sans antialiased bg-gradient-to-br from-indigo-400 to-purple-500 min-h-screen`}
+        className={`${notoSansHebrew.variable} font-sans antialiased min-h-screen`}
         style={{
           padding:
             "env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)",

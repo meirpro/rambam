@@ -25,13 +25,18 @@
     "resetPath": "Reset current path",
     "resetAll": "Reset all",
     "resetWarning": "This will delete your progress",
-    "changelog": "Changelog",
+    "changelog": "Changelog & Credits",
     "version": "Version",
     "cycle46": "Cycle 46",
     "yes": "Yes",
     "no": "No",
     "close": "Close",
-    "progress": "Progress"
+    "progress": "Progress",
+    "dataManagement": "Data Management",
+    "exportData": "Export",
+    "importData": "Import",
+    "importSuccess": "Data imported successfully!",
+    "importError": "Error importing file"
   },
   "welcome": {
     "title": "Welcome!",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, useRef } from "react";
 import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter, usePathname } from "next/navigation";
@@ -8,6 +8,11 @@ import { useAppStore } from "@/stores/appStore";
 import { useLocationStore, formatSunsetTime } from "@/stores/locationStore";
 import { getLocationWithName } from "@/services/geocoding";
 import { fetchSunset } from "@/services/hebcal";
+import {
+  downloadExport,
+  parseImportFile,
+  importData,
+} from "@/services/dataExport";
 import { getLocalDate } from "@/lib/dates";
 import { Button } from "@/components/ui/Button";
 import { Toggle } from "@/components/ui/Toggle";
@@ -22,6 +27,34 @@ interface SettingsPanelProps {
 
 // Bilingual changelog - Hebrew and English
 const CHANGELOG: Record<string, { he: string; en: string }[]> = {
+  "6": [
+    {
+      he: "לוח שנה עברי - תאריכים בעברית עם גימטריא (א׳, ב׳, י״ז...)",
+      en: "Hebrew calendar - Jewish dates with gematriya (א׳, ב׳, י״ז...)",
+    },
+    {
+      he: "ניווט לפי חודשים עבריים (שבט, אדר, ניסן...)",
+      en: "Navigation by Hebrew months (Shevat, Adar, Nisan...)",
+    },
+    {
+      he: "צבע רקע דינמי - משתנה בהתאם למצב (כחול/צהוב/אדום)",
+      en: "Dynamic background color - changes based on status (blue/amber/red)",
+    },
+  ],
+  "5": [
+    {
+      he: "ייצוא וייבוא נתונים - העבר התקדמות בין מכשירים",
+      en: "Export/import data - transfer progress between devices",
+    },
+    {
+      he: "גיבוי להורדה כקובץ JSON עם כל ההגדרות וההתקדמות",
+      en: "Download backup as JSON file with all settings and progress",
+    },
+    {
+      he: "ייבוא מקובץ גיבוי - שחזר את הנתונים במכשיר חדש",
+      en: "Import from backup file - restore data on new device",
+    },
+  ],
   "4": [
     {
       he: "ארכיטקטורת אופליין-פירסט - האפליקציה עובדת ללא אינטרנט",
@@ -40,8 +73,8 @@ const CHANGELOG: Record<string, { he: string; en: string }[]> = {
       en: "Automatic background sync - content updates silently",
     },
     {
-      he: "חיווי מצב אופליין - באנר צהוב כשאין חיבור",
-      en: "Offline status indicator - yellow banner when disconnected",
+      he: "חיווי מצב אופליין - כותרת צהובה עם אייקון כשאין חיבור",
+      en: "Offline status indicator - amber header with icon when disconnected",
     },
     {
       he: "תרגום מלא לאנגלית ועברית",
@@ -180,19 +213,27 @@ const CONTRIBUTORS: Record<
   string,
   { name: { he: string; en: string }; avatar: string; link?: string }
 > = {
+  "6": {
+    name: { he: "מאיר", en: "Meir" },
+    avatar: "/contributors/meir.png",
+  },
+  "5": {
+    name: { he: "מאיר", en: "Meir" },
+    avatar: "/contributors/meir.png",
+  },
   "0": {
     name: { he: "הרב שוקי", en: "Rabbi Shuki" },
-    avatar: "/rabbi.jpeg",
+    avatar: "/contributors/rabbi.jpeg",
     link: "https://wa.me/972586030770?text=אהבתי%20את%20האפליקציה%20של%20הרמבם",
   },
   "1": {
     name: { he: "הרב שוקי", en: "Rabbi Shuki" },
-    avatar: "/rabbi.jpeg",
+    avatar: "/contributors/rabbi.jpeg",
     link: "https://wa.me/972586030770?text=אהבתי%20את%20האפליקציה%20של%20הרמבם",
   },
   "2": {
     name: { he: "הרב שוקי", en: "Rabbi Shuki" },
-    avatar: "/rabbi.jpeg",
+    avatar: "/contributors/rabbi.jpeg",
     link: "https://wa.me/972586030770?text=אהבתי%20את%20האפליקציה%20של%20הרמבם",
   },
   "3": {
@@ -228,6 +269,10 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
   const setSunset = useLocationStore((state) => state.setSunset);
 
   const [isUpdatingLocation, setIsUpdatingLocation] = useState(false);
+  const [importStatus, setImportStatus] = useState<
+    "idle" | "success" | "error"
+  >("idle");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Switch UI language (locale)
   const handleSwitchLocale = useCallback(() => {
@@ -259,6 +304,37 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
   }, [setLocation, setSunset]);
 
   const { confirm } = useConfirmDialog();
+
+  const handleExport = useCallback(() => {
+    downloadExport();
+  }, []);
+
+  const handleImportFile = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      setImportStatus("idle");
+
+      try {
+        const data = await parseImportFile(file);
+        importData(data);
+        setImportStatus("success");
+        // Auto-clear success message after 3 seconds
+        setTimeout(() => setImportStatus("idle"), 3000);
+      } catch {
+        setImportStatus("error");
+        // Auto-clear error message after 5 seconds
+        setTimeout(() => setImportStatus("idle"), 5000);
+      }
+
+      // Reset file input so same file can be selected again
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    },
+    [],
+  );
 
   const handleResetPath = useCallback(async () => {
     const confirmed = await confirm({
@@ -416,6 +492,49 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
             <PrefetchButton />
           </section>
 
+          {/* Data Management */}
+          <section className="p-4 border-b border-gray-200">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              {t("dataManagement")}
+            </label>
+            <p className="text-xs text-gray-500 mb-2">
+              {isHebrew
+                ? "העבר את ההתקדמות שלך בין מכשירים"
+                : "Transfer your progress between devices"}
+            </p>
+            <div className="flex gap-2">
+              <Button variant="secondary" fullWidth onClick={handleExport}>
+                {t("exportData")}
+              </Button>
+              <div className="flex-1">
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={handleImportFile}
+                  className="hidden"
+                  ref={fileInputRef}
+                />
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {t("importData")}
+                </Button>
+              </div>
+            </div>
+            {importStatus === "success" && (
+              <p className="text-xs text-green-600 mt-2 text-center">
+                {t("importSuccess")}
+              </p>
+            )}
+            {importStatus === "error" && (
+              <p className="text-xs text-red-600 mt-2 text-center">
+                {t("importError")}
+              </p>
+            )}
+          </section>
+
           {/* Reset */}
           <section className="p-4 border-b border-gray-200">
             <p className="text-sm text-gray-500 text-center mb-2">
@@ -451,7 +570,7 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
                       <details
                         key={version}
                         className="mb-2 border rounded-lg overflow-hidden"
-                        open={version === "4"}
+                        open={version === "5"}
                       >
                         <summary className="px-3 py-2 bg-gray-50 font-semibold text-sm cursor-pointer hover:bg-gray-100 flex items-center gap-2">
                           <span className="inline-block transition-transform">
@@ -508,7 +627,7 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
                       className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors"
                     >
                       <Image
-                        src="/rabbi.jpeg"
+                        src="/contributors/rabbi.jpeg"
                         alt="Rabbi Shuki"
                         width={40}
                         height={40}
@@ -531,10 +650,29 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
                       </svg>
                     </a>
 
-                    {/* Claude Code - built */}
+                    {/* Meir - contributor */}
                     <div className="flex items-center gap-3 p-2 rounded-lg">
                       <Image
-                        src="/claude.jpeg"
+                        src="/contributors/meir.png"
+                        alt="Meir"
+                        width={40}
+                        height={40}
+                        className="rounded-full"
+                      />
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-gray-800">
+                          {isHebrew ? "מאיר" : "Meir"}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {isHebrew ? "הוסיף ושיפר" : "Added & improved"}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Claude Code - built (base for everything) */}
+                    <div className="flex items-center gap-3 p-2 rounded-lg">
+                      <Image
+                        src="/contributors/claude.png"
                         alt="Claude Code"
                         width={40}
                         height={40}
@@ -546,25 +684,6 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
                         </div>
                         <div className="text-xs text-gray-500">
                           {isHebrew ? "בנה" : "Built"}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Meir - contributor */}
-                    <div className="flex items-center gap-3 p-2 rounded-lg">
-                      <Image
-                        src="https://github.com/meirpro.png"
-                        alt="Meir"
-                        width={40}
-                        height={40}
-                        className="rounded-full"
-                      />
-                      <div className="flex-1">
-                        <div className="text-sm font-medium text-gray-800">
-                          {isHebrew ? "מאיר" : "Meir"}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {isHebrew ? "תרם" : "Contributor"}
                         </div>
                       </div>
                     </div>
