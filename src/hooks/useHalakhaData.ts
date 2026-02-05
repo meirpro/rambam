@@ -20,14 +20,15 @@ interface UseHalakhaDataReturn {
  * Supports single ref (Rambam) or multiple refs (Sefer HaMitzvot)
  * @param ref - Primary Sefaria reference string
  * @param date - Date string for caching in store
+ * @param studyPath - Study path for proper caching
  * @param refs - Optional array of multiple refs (for Sefer HaMitzvot)
  */
 export function useHalakhaData(
   ref: string,
   date: string,
+  studyPath: StudyPath,
   refs?: string[],
 ): UseHalakhaDataReturn {
-  const studyPath = useAppStore((state) => state.studyPath);
   const days = useAppStore((state) => state.days);
   const setDayData = useAppStore((state) => state.setDayData);
 
