@@ -12,6 +12,7 @@
 
 import { useMemo, useState, useCallback, useEffect } from "react";
 import { useIsClient } from "usehooks-ts";
+import { useTranslations } from "next-intl";
 import { useTutorial, TutorialAction } from "@/hooks/useTutorial";
 import { TutorialOverlay } from "./TutorialOverlay";
 import { DemoCard } from "./DemoCard";
@@ -77,6 +78,7 @@ interface TutorialProps {
 export function Tutorial({ onComplete }: TutorialProps) {
   // Wait for client-side hydration before rendering
   const isClient = useIsClient();
+  const t = useTranslations("tutorial");
 
   const {
     isActive,
@@ -322,13 +324,9 @@ export function Tutorial({ onComplete }: TutorialProps) {
                 </div>
               </button>
               {/* Mock text */}
-              <div
-                className="text-gray-800 text-lg leading-relaxed text-justify pr-6"
-                dir="rtl"
-              >
-                <span className="font-bold text-gray-900">א.</span> הלכה לדוגמה
-                - לחץ על כפתור המידע כדי לראות קישורים נוספים לספריא
-                ו-Chabad.org
+              <div className="text-gray-800 text-lg leading-relaxed text-justify pr-6">
+                <span className="font-bold text-gray-900">1.</span>{" "}
+                {t("demo.halakhaExample")}
               </div>
             </div>
           </div>
@@ -344,8 +342,8 @@ export function Tutorial({ onComplete }: TutorialProps) {
           />
           <div className="relative w-full max-w-sm bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-              <span className="font-semibold text-gray-800" dir="rtl">
-                קישורים חיצוניים
+              <span className="font-semibold text-gray-800">
+                {t("demo.externalLinks")}
               </span>
               <button
                 onClick={() => setShowInfoPreview(false)}
@@ -373,14 +371,11 @@ export function Tutorial({ onComplete }: TutorialProps) {
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   <span className="text-gray-500">▶</span>
                   <div className="flex-1 min-w-0">
-                    <div
-                      className="text-lg font-semibold text-gray-800 truncate"
-                      dir="rtl"
-                    >
-                      הלכות דעות פרק א׳
+                    <div className="text-lg font-semibold text-gray-800 truncate">
+                      {t("demo.chapterTitle")}
                     </div>
-                    <div className="text-sm text-gray-500 mt-0.5" dir="rtl">
-                      היום • י&quot;ח שבט •{" "}
+                    <div className="text-sm text-gray-500 mt-0.5">
+                      {t("demo.todayDate")} •{" "}
                       {dayCheckmarkClicked ? "3/3" : "0/3"}
                     </div>
                   </div>
@@ -429,12 +424,67 @@ export function Tutorial({ onComplete }: TutorialProps) {
                             : "text-gray-800"
                         }
                       >
-                        {["א", "ב", "ג"][num - 1]}. הלכה לדוגמה {num}
+                        {num}. {t("demo.halakha")} {num}
                       </span>
                     </div>
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Header colors visual mock-up */}
+      {currentStage.id === "header-colors" && (
+        <div className="fixed inset-0 z-45 flex items-center justify-center px-4">
+          <div className="w-full max-w-md space-y-3">
+            {/* Blue header - normal */}
+            <div className="bg-blue-600 text-white px-4 py-3 rounded-xl flex items-center gap-3 shadow-md">
+              <div className="w-3 h-3 rounded-full bg-white/30" />
+              <span className="font-medium flex-1">
+                {t("headerColors.blue")}
+              </span>
+            </div>
+            {/* Amber header - offline */}
+            <div className="bg-amber-500 text-white px-4 py-3 rounded-xl flex items-center gap-3 shadow-md">
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <line x1="1" y1="1" x2="23" y2="23" strokeWidth="2" />
+                <path
+                  d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"
+                  strokeWidth="2"
+                />
+                <path
+                  d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"
+                  strokeWidth="2"
+                />
+              </svg>
+              <span className="font-medium flex-1">
+                {t("headerColors.amber")}
+              </span>
+            </div>
+            {/* Red header - other date */}
+            <div className="bg-red-600 text-white px-4 py-3 rounded-xl flex items-center gap-3 shadow-md">
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                strokeWidth="2"
+              >
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+              <span className="font-medium flex-1">
+                {t("headerColors.red")}
+              </span>
             </div>
           </div>
         </div>
