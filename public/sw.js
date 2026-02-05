@@ -17,7 +17,7 @@ const PRECACHE_ASSETS = [
   // App images
   "/logo.png",
   "/contributors/meir.png",
-  "/contributors/claude.png",
+  "/contributors/claude.jpeg",
   "/contributors/rabbi.jpeg",
 ];
 

@@ -17,8 +17,11 @@ import { getLocalDate } from "@/lib/dates";
 import { Button } from "@/components/ui/Button";
 import { Toggle } from "@/components/ui/Toggle";
 import { StudyPathPicker } from "./StudyPathPicker";
+import { MultiPathPicker } from "./MultiPathPicker";
 import { PrefetchButton } from "./PrefetchButton";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { useTutorial } from "@/hooks/useTutorial";
+import type { HideCompletedMode } from "@/types";
 
 interface SettingsPanelProps {
   isOpen: boolean;
@@ -257,8 +260,10 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
   const studyPath = useAppStore((state) => state.studyPath);
   const textLanguage = useAppStore((state) => state.textLanguage);
   const autoMarkPrevious = useAppStore((state) => state.autoMarkPrevious);
+  const hideCompleted = useAppStore((state) => state.hideCompleted);
   const setTextLanguage = useAppStore((state) => state.setTextLanguage);
   const setAutoMarkPrevious = useAppStore((state) => state.setAutoMarkPrevious);
+  const setHideCompleted = useAppStore((state) => state.setHideCompleted);
   const resetPath = useAppStore((state) => state.resetPath);
   const resetAll = useAppStore((state) => state.resetAll);
 
@@ -273,6 +278,10 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
     "idle" | "success" | "error"
   >("idle");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Tutorial
+  const { resetTutorial, hasSkipped, isActive } = useTutorial();
+  const tTutorial = useTranslations("tutorial");
 
   // Switch UI language (locale)
   const handleSwitchLocale = useCallback(() => {
@@ -405,12 +414,12 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
             </Button>
           </section>
 
-          {/* Study Path */}
+          {/* Study Paths - Multi-select */}
           <section className="p-4 border-b border-gray-200">
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               {t("studyPath")}
             </label>
-            <StudyPathPicker />
+            <MultiPathPicker />
           </section>
 
           {/* Text Language */}
@@ -453,6 +462,31 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
               value={autoMarkPrevious ? "true" : "false"}
               onChange={(val) => setAutoMarkPrevious(val === "true")}
             />
+          </section>
+
+          {/* Hide Completed */}
+          <section className="p-4 border-b border-gray-200">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              {t("hideCompleted")}
+            </label>
+            <select
+              value={hideCompleted}
+              onChange={(e) =>
+                setHideCompleted(e.target.value as HideCompletedMode)
+              }
+              className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="show">{t("hideCompletedOptions.show")}</option>
+              <option value="immediate">
+                {t("hideCompletedOptions.immediate")}
+              </option>
+              <option value="after1h">
+                {t("hideCompletedOptions.after1h")}
+              </option>
+              <option value="after24h">
+                {t("hideCompletedOptions.after24h")}
+              </option>
+            </select>
           </section>
 
           {/* Location & Sunset */}
@@ -550,6 +584,22 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
             </div>
           </section>
 
+          {/* Tutorial - show only if not currently active */}
+          {!isActive && (hasSkipped || true) && (
+            <section className="p-4 border-b border-gray-200">
+              <Button
+                variant="secondary"
+                fullWidth
+                onClick={() => {
+                  resetTutorial();
+                  onClose();
+                }}
+              >
+                {tTutorial("restartTutorial")}
+              </Button>
+            </section>
+          )}
+
           {/* Changelog - in its own collapsible section */}
           <section className="p-4">
             <details className="border rounded-lg overflow-hidden">
@@ -619,6 +669,49 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
                     {isHebrew ? "קרדיטים" : "Credits"}
                   </h4>
                   <div className="flex flex-col gap-3">
+                    {/* Rambam - the author */}
+                    <a
+                      href={
+                        isHebrew
+                          ? "https://he.chabad.org/library/article_cdo/aid/5783107"
+                          : "https://www.chabad.org/library/article_cdo/aid/75991/jewish/Maimonides-His-Life-and-Works.htm"
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      <Image
+                        src="/contributors/rambam.jpeg"
+                        alt="Rambam"
+                        width={40}
+                        height={40}
+                        className="rounded-full"
+                      />
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-gray-800">
+                          {isHebrew ? 'הרמב"ם' : "The Rambam"}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {isHebrew
+                            ? "בזכותו אנחנו כאן"
+                            : "By his merit we are here"}
+                        </div>
+                      </div>
+                      <svg
+                        className="w-5 h-5 text-gray-400"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                        <polyline points="15 3 21 3 21 9" />
+                        <line x1="10" y1="14" x2="21" y2="3" />
+                      </svg>
+                    </a>
+
                     {/* Rabbi Shuki - conceived and directed */}
                     <a
                       href="https://wa.me/972586030770?text=אהבתי%20את%20האפליקציה%20של%20הרמבם"
@@ -690,7 +783,7 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
                     {/* Claude Code - built (base for everything) */}
                     <div className="flex items-center gap-3 p-2 rounded-lg">
                       <Image
-                        src="/contributors/claude.png"
+                        src="/contributors/claude.jpeg"
                         alt="Claude Code"
                         width={40}
                         height={40}
@@ -701,10 +794,86 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
                           Claude Code
                         </div>
                         <div className="text-xs text-gray-500">
-                          {isHebrew ? "בנה" : "Built"}
+                          {isHebrew ? "כתב את הקוד" : "Wrote the code"}
                         </div>
                       </div>
                     </div>
+
+                    {/* Sefaria - content provider */}
+                    <a
+                      href="https://www.sefaria.org/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      <Image
+                        src="/contributors/sefaria.png"
+                        alt="Sefaria"
+                        width={40}
+                        height={40}
+                        className="rounded-lg"
+                      />
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-gray-800">
+                          Sefaria
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {isHebrew
+                            ? "הטקסטים מבית ספריא"
+                            : "Texts from Sefaria"}
+                        </div>
+                      </div>
+                      <svg
+                        className="w-5 h-5 text-gray-400"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                        <polyline points="15 3 21 3 21 9" />
+                        <line x1="10" y1="14" x2="21" y2="3" />
+                      </svg>
+                    </a>
+
+                    {/* Hebcal - calendar data */}
+                    <a
+                      href="https://www.hebcal.com/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      <Image
+                        src="/contributors/hebcal.png"
+                        alt="Hebcal"
+                        width={40}
+                        height={40}
+                        className="rounded-lg"
+                      />
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-gray-800">
+                          Hebcal
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {isHebrew ? "לוח שנה עברי" : "Hebrew calendar"}
+                        </div>
+                      </div>
+                      <svg
+                        className="w-5 h-5 text-gray-400"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                        <polyline points="15 3 21 3 21 9" />
+                        <line x1="10" y1="14" x2="21" y2="3" />
+                      </svg>
+                    </a>
                   </div>
                 </div>
               </div>
@@ -723,7 +892,7 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
             <strong>נתן</strong>
           </div>
           <div className="mt-1">
-            לרפואה שלימה ל<strong>מרדכי</strong> בן <strong>חנה</strong>
+            רפואה שלימה ל<strong>מרדכי</strong> בן <strong>חנה</strong>
           </div>
         </div>
 
