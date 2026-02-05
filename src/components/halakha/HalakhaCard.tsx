@@ -6,7 +6,8 @@ import { useSwipeGesture } from "@/hooks/useSwipeGesture";
 import { useAppStore, isHalakhaDone } from "@/stores/appStore";
 import { toHebrewLetter } from "@/lib/hebrew";
 import { AutoMarkPrompt, type AutoMarkChoice } from "./AutoMarkPrompt";
-import type { HalakhaText, TextLanguage, StudyPath } from "@/types";
+import { HalakhaInfoSheet } from "./HalakhaInfoSheet";
+import type { HalakhaText, TextLanguage, StudyPath, DayData } from "@/types";
 
 interface HalakhaCardProps {
   halakha: HalakhaText;
@@ -17,6 +18,7 @@ interface HalakhaCardProps {
   autoMarkPrevious: boolean;
   onMarkComplete?: (index: number) => void;
   onMarkIncomplete?: (index: number) => void;
+  dayData?: DayData;
 }
 
 // Swipe threshold to trigger action (in pixels)
@@ -31,6 +33,7 @@ export function HalakhaCard({
   autoMarkPrevious,
   onMarkComplete,
   onMarkIncomplete,
+  dayData,
 }: HalakhaCardProps) {
   const t = useTranslations("swipe");
   const done = useAppStore((state) => state.done);
@@ -45,6 +48,7 @@ export function HalakhaCard({
   );
 
   const [showPrompt, setShowPrompt] = useState(false);
+  const [showInfoSheet, setShowInfoSheet] = useState(false);
 
   const isCompleted = isHalakhaDone(done, studyPath, date, index);
   const hebrewNum = toHebrewLetter(index + 1);
@@ -205,10 +209,18 @@ export function HalakhaCard({
     markThisAndPrevious,
   ]);
 
+  // Long press handler to open info sheet
+  const handleLongPress = useCallback(() => {
+    if (dayData) {
+      setShowInfoSheet(true);
+    }
+  }, [dayData]);
+
   const { handlers, state, style } = useSwipeGesture({
     onSwipeRight: handleSwipeRight,
     onSwipeLeft: handleSwipeLeft,
     onDoubleTap: handleDoubleTap,
+    onLongPress: handleLongPress,
   });
 
   // Calculate swipe feedback visibility (0-1)
@@ -233,7 +245,7 @@ export function HalakhaCard({
           {state.direction === "right" && (
             <div
               className={`
-                absolute inset-y-0 left-0 rounded-xl
+                absolute inset-y-0 left-0 sm:rounded-xl rounded-none
                 flex items-center justify-center
                 transition-colors duration-150
                 ${
@@ -273,7 +285,7 @@ export function HalakhaCard({
           {state.direction === "left" && (
             <div
               className={`
-                absolute inset-y-0 right-0 rounded-xl
+                absolute inset-y-0 right-0 sm:rounded-xl rounded-none
                 flex items-center justify-center
                 transition-colors duration-150
                 ${
@@ -318,15 +330,16 @@ export function HalakhaCard({
       {/* The actual card */}
       <div
         className={`
-          bg-white border-2 rounded-xl p-4
+          bg-white border-2 sm:rounded-xl rounded-none p-4
           text-lg leading-relaxed
           relative cursor-grab active:cursor-grabbing
           shadow-sm hover:shadow-md
           touch-pan-y select-none
           transition-[box-shadow]
+          sm:border-2 border-y-2 border-x-0
           ${
             isCompleted
-              ? "opacity-40 bg-gray-100 border-gray-300"
+              ? "opacity-50 bg-green-50 border-green-200"
               : "border-gray-200"
           }
         `}
@@ -334,6 +347,35 @@ export function HalakhaCard({
         {...handlers}
         data-index={index}
       >
+        {/* Info icon - opens info sheet, positioned on left corner */}
+        {dayData && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowInfoSheet(true);
+            }}
+            className="absolute top-2 left-2 sm:-top-2 sm:-left-2
+                       w-6 h-6 text-gray-400 hover:text-gray-600 bg-white border border-gray-200
+                       flex items-center justify-center rounded-full hover:bg-gray-100
+                       transition-colors z-10 shadow-sm"
+            aria-label="More information"
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </button>
+        )}
+
         {/* Bilingual layout: side-by-side on wide (Hebrew RIGHT, English LEFT), stacked on narrow */}
         <div
           className={`
@@ -387,6 +429,18 @@ export function HalakhaCard({
         count={incompletePreviousCount}
         onChoice={handlePromptChoice}
       />
+
+      {/* Info sheet with external links */}
+      {dayData && (
+        <HalakhaInfoSheet
+          isOpen={showInfoSheet}
+          onClose={() => setShowInfoSheet(false)}
+          dayData={dayData}
+          halakhaIndex={index}
+          date={date}
+          studyPath={studyPath}
+        />
+      )}
     </div>
   );
 }

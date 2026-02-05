@@ -32,6 +32,10 @@ interface UseSwipeGestureOptions {
   onSwipeLeft?: () => void;
   /** Called on double tap/click (toggle) */
   onDoubleTap?: () => void;
+  /** Called on long press (default: 500ms) */
+  onLongPress?: () => void;
+  /** Long press delay in milliseconds (default: 500) */
+  longPressDelay?: number;
 }
 
 interface UseSwipeGestureReturn {
@@ -41,11 +45,19 @@ interface UseSwipeGestureReturn {
 }
 
 const DOUBLE_TAP_DELAY = 300;
+const DEFAULT_LONG_PRESS_DELAY = 500;
 
 export function useSwipeGesture(
   options: UseSwipeGestureOptions = {},
 ): UseSwipeGestureReturn {
-  const { threshold = 100, onSwipeRight, onSwipeLeft, onDoubleTap } = options;
+  const {
+    threshold = 100,
+    onSwipeRight,
+    onSwipeLeft,
+    onDoubleTap,
+    onLongPress,
+    longPressDelay = DEFAULT_LONG_PRESS_DELAY,
+  } = options;
 
   const [state, setState] = useState<SwipeState>({
     deltaX: 0,
@@ -58,32 +70,79 @@ export function useSwipeGesture(
   const startY = useRef(0);
   const isMouseDown = useRef(false);
   const lastTapTime = useRef(0);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasTriggeredLongPress = useRef(false);
 
-  const handleStart = useCallback((clientX: number, clientY: number) => {
-    startX.current = clientX;
-    startY.current = clientY;
-    setState((prev) => ({ ...prev, isSwiping: false, deltaX: 0, deltaY: 0 }));
-  }, []);
-
-  const handleMove = useCallback((clientX: number, clientY: number) => {
-    const deltaX = clientX - startX.current;
-    const deltaY = clientY - startY.current;
-
-    // Only start swiping if horizontal movement exceeds vertical
-    const shouldSwipe =
-      Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10;
-
-    if (shouldSwipe) {
-      setState({
-        deltaX,
-        deltaY,
-        isSwiping: true,
-        direction: deltaX > 0 ? "right" : "left",
-      });
+  const clearLongPressTimer = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
     }
   }, []);
 
+  const startLongPressTimer = useCallback(() => {
+    clearLongPressTimer();
+    hasTriggeredLongPress.current = false;
+    if (onLongPress) {
+      longPressTimer.current = setTimeout(() => {
+        hasTriggeredLongPress.current = true;
+        onLongPress();
+      }, longPressDelay);
+    }
+  }, [onLongPress, longPressDelay, clearLongPressTimer]);
+
+  const handleStart = useCallback(
+    (clientX: number, clientY: number) => {
+      startX.current = clientX;
+      startY.current = clientY;
+      setState((prev) => ({ ...prev, isSwiping: false, deltaX: 0, deltaY: 0 }));
+      startLongPressTimer();
+    },
+    [startLongPressTimer],
+  );
+
+  const handleMove = useCallback(
+    (clientX: number, clientY: number) => {
+      const deltaX = clientX - startX.current;
+      const deltaY = clientY - startY.current;
+
+      // Cancel long press if user moves too much
+      if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
+        clearLongPressTimer();
+      }
+
+      // Only start swiping if horizontal movement exceeds vertical
+      const shouldSwipe =
+        Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10;
+
+      if (shouldSwipe) {
+        setState({
+          deltaX,
+          deltaY,
+          isSwiping: true,
+          direction: deltaX > 0 ? "right" : "left",
+        });
+      }
+    },
+    [clearLongPressTimer],
+  );
+
   const handleEnd = useCallback(() => {
+    clearLongPressTimer();
+
+    // Don't process swipes if we triggered a long press
+    if (hasTriggeredLongPress.current) {
+      hasTriggeredLongPress.current = false;
+      setState({
+        deltaX: 0,
+        deltaY: 0,
+        isSwiping: false,
+        direction: null,
+      });
+      isMouseDown.current = false;
+      return;
+    }
+
     const { deltaX, isSwiping } = state;
 
     if (isSwiping) {
@@ -105,7 +164,7 @@ export function useSwipeGesture(
       direction: null,
     });
     isMouseDown.current = false;
-  }, [state, threshold, onSwipeRight, onSwipeLeft]);
+  }, [state, threshold, onSwipeRight, onSwipeLeft, clearLongPressTimer]);
 
   const handleDoubleTap = useCallback(() => {
     const now = Date.now();
@@ -150,11 +209,16 @@ export function useSwipeGesture(
   // Mouse handlers
   const onMouseDown = useCallback(
     (e: React.MouseEvent) => {
+      // Check for double-click (same logic as touch)
+      if (handleDoubleTap()) {
+        e.preventDefault();
+        return;
+      }
       isMouseDown.current = true;
       handleStart(e.clientX, e.clientY);
       e.preventDefault();
     },
-    [handleStart],
+    [handleStart, handleDoubleTap],
   );
 
   const onMouseMove = useCallback(
