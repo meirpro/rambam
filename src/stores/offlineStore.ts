@@ -1,11 +1,20 @@
 /**
  * Offline state store
- * Tracks network connectivity status for the app
+ * Tracks network connectivity status and sync progress for the app
  */
 
 import { create } from "zustand";
 
 export type OfflineState = "online" | "system-offline" | "user-offline";
+
+export type SyncStatus = "idle" | "syncing" | "success" | "error";
+
+interface SyncProgress {
+  status: SyncStatus;
+  message?: string;
+  total?: number;
+  completed?: number;
+}
 
 interface OfflineStore {
   // Current connectivity state
@@ -14,12 +23,16 @@ interface OfflineStore {
   lastOnline: string | null;
   // Flag for content updates available
   hasContentUpdate: boolean;
+  // Sync progress for offline downloads
+  syncProgress: SyncProgress;
 
   // Actions
   setOnline: () => void;
   setSystemOffline: () => void;
   setUserOffline: () => void;
   setHasContentUpdate: (hasUpdate: boolean) => void;
+  setSyncProgress: (progress: SyncProgress) => void;
+  clearSyncStatus: () => void;
 }
 
 export const useOfflineStore = create<OfflineStore>((set) => ({
@@ -27,6 +40,7 @@ export const useOfflineStore = create<OfflineStore>((set) => ({
   state: "online",
   lastOnline: null,
   hasContentUpdate: false,
+  syncProgress: { status: "idle" },
 
   setOnline: () =>
     set({
@@ -50,6 +64,16 @@ export const useOfflineStore = create<OfflineStore>((set) => ({
   setHasContentUpdate: (hasUpdate) =>
     set({
       hasContentUpdate: hasUpdate,
+    }),
+
+  setSyncProgress: (progress) =>
+    set({
+      syncProgress: progress,
+    }),
+
+  clearSyncStatus: () =>
+    set({
+      syncProgress: { status: "idle" },
     }),
 }));
 

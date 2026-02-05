@@ -11,6 +11,7 @@ import { getCalendarFromDB, getMeta, setMeta } from "./database";
 import { getJewishDate, formatDateString } from "@/lib/dates";
 import { useLocationStore } from "@/stores/locationStore";
 import { useAppStore } from "@/stores/appStore";
+import { useOfflineStore } from "@/stores/offlineStore";
 
 // Sync interval: 30 minutes
 const SYNC_INTERVAL_MS = 30 * 60 * 1000;
@@ -103,14 +104,29 @@ async function shouldRunDailyPrefetch(): Promise<boolean> {
 /**
  * Prefetch upcoming days for the current study path
  * Downloads calendar + full text content for the next few days
+ * Reports progress through the offline store for UI feedback
  */
-async function runDailyPrefetch(): Promise<void> {
+async function runDailyPrefetch(): Promise<{
+  success: boolean;
+  failed: number;
+}> {
   const studyPath = useAppStore.getState().studyPath;
   const sunset = useLocationStore.getState().sunset;
   const today = new Date(getJewishDate(sunset));
   const setDayData = useAppStore.getState().setDayData;
+  const setSyncProgress = useOfflineStore.getState().setSyncProgress;
 
   console.log(`[BackgroundSync] Running daily prefetch for ${studyPath}`);
+
+  // Report sync started
+  setSyncProgress({
+    status: "syncing",
+    total: PREFETCH_DAYS_AHEAD,
+    completed: 0,
+  });
+
+  let completed = 0;
+  let failed = 0;
 
   for (let i = 0; i < PREFETCH_DAYS_AHEAD; i++) {
     const date = formatDateString(today);
@@ -138,8 +154,16 @@ async function runDailyPrefetch(): Promise<void> {
         chapterBreaks,
       });
 
+      completed++;
+      setSyncProgress({
+        status: "syncing",
+        total: PREFETCH_DAYS_AHEAD,
+        completed,
+      });
+
       console.log(`[BackgroundSync] Prefetched ${date}`);
     } catch (error) {
+      failed++;
       console.error(`[BackgroundSync] Failed to prefetch ${date}:`, error);
     }
   }
@@ -147,11 +171,16 @@ async function runDailyPrefetch(): Promise<void> {
   // Mark prefetch as done for today
   const sunsetForMeta = useLocationStore.getState().sunset;
   await setMeta(PREFETCH_KEY, getJewishDate(sunsetForMeta));
+
+  return { success: failed === 0, failed };
 }
+
+// Auto-dismiss timeout for success/error banners
+const BANNER_DISMISS_MS = 3000;
 
 /**
  * Run a background sync for all paths
- * Content updates are applied silently - no user notification needed
+ * Reports progress through the offline store for UI feedback
  */
 async function runSync(): Promise<void> {
   if (syncInProgress || !canSync()) {
@@ -159,14 +188,30 @@ async function runSync(): Promise<void> {
   }
 
   syncInProgress = true;
+  const { setSyncProgress, clearSyncStatus } = useOfflineStore.getState();
 
   try {
     // First, check if daily prefetch is needed
     if (await shouldRunDailyPrefetch()) {
-      await runDailyPrefetch();
+      const result = await runDailyPrefetch();
+
+      // Show success or error banner
+      if (result.success) {
+        setSyncProgress({ status: "success" });
+      } else {
+        setSyncProgress({
+          status: "error",
+          message: `Failed ${result.failed} days`,
+        });
+      }
+
+      // Auto-dismiss after delay
+      setTimeout(() => {
+        clearSyncStatus();
+      }, BANNER_DISMISS_MS);
     }
 
-    // Then sync calendar data for all paths
+    // Then sync calendar data for all paths (silent, no banner)
     const paths: StudyPath[] = ["rambam3", "rambam1", "mitzvot"];
 
     for (const path of paths) {
@@ -176,6 +221,10 @@ async function runSync(): Promise<void> {
     }
   } catch (error) {
     console.error("Background sync failed:", error);
+    setSyncProgress({ status: "error" });
+    setTimeout(() => {
+      clearSyncStatus();
+    }, BANNER_DISMISS_MS);
   } finally {
     syncInProgress = false;
   }

@@ -16,6 +16,32 @@ export function OfflineProvider({ children }: OfflineProviderProps) {
   useEffect(() => {
     // Initialize offline infrastructure on mount
     initializeOffline();
+
+    // Register service worker
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .register("/sw.js", {
+          scope: "/",
+          updateViaCache: "none",
+        })
+        .then((registration) => {
+          console.log("[PWA] Service worker registered:", registration.scope);
+
+          // Check for updates periodically
+          registration.update();
+
+          // Listen for new service worker
+          registration.addEventListener("updatefound", () => {
+            const newWorker = registration.installing;
+            if (newWorker) {
+              console.log("[PWA] New service worker installing...");
+            }
+          });
+        })
+        .catch((error) => {
+          console.error("[PWA] Service worker registration failed:", error);
+        });
+    }
   }, []);
 
   return (
