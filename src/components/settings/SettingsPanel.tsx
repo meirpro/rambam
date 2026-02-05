@@ -8,7 +8,7 @@ import { useAppStore } from "@/stores/appStore";
 import { useLocationStore, formatSunsetTime } from "@/stores/locationStore";
 import { getLocationWithName } from "@/services/geocoding";
 import { fetchSunset } from "@/services/hebcal";
-import { getTodayInIsrael } from "@/lib/dates";
+import { getLocalDate } from "@/lib/dates";
 import { Button } from "@/components/ui/Button";
 import { Toggle } from "@/components/ui/Toggle";
 import { StudyPathPicker } from "./StudyPathPicker";
@@ -248,7 +248,7 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
         location.isDefault,
       );
 
-      const today = getTodayInIsrael();
+      const today = getLocalDate();
       const sunsetData = await fetchSunset(today, location.coords);
       setSunset(sunsetData);
     } catch (error) {

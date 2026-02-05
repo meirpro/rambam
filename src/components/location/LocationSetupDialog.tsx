@@ -7,7 +7,7 @@ import { useLocationStore } from "@/stores/locationStore";
 import { useAppStore } from "@/stores/appStore";
 import { getUserLocation, reverseGeocode } from "@/services/geocoding";
 import { fetchSunset } from "@/services/hebcal";
-import { getTodayInIsrael } from "@/lib/dates";
+import { getLocalDate } from "@/lib/dates";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import type { StudyPath, TextLanguage } from "@/types";
@@ -102,7 +102,7 @@ export function LocationSetupDialog({
       setLocation(coords, cityNames, false, false);
 
       // Fetch sunset for this location
-      const today = getTodayInIsrael();
+      const today = getLocalDate();
       const sunsetData = await fetchSunset(today, coords);
       console.log("[Location] Sunset fetched:", sunsetData);
       setSunset(sunsetData);
@@ -176,7 +176,7 @@ export function LocationSetupDialog({
       setLocation(coords, cityNames, true, false);
 
       // Fetch sunset for this location
-      const today = getTodayInIsrael();
+      const today = getLocalDate();
       const sunsetData = await fetchSunset(today, coords);
       console.log("[Location] Sunset fetched:", sunsetData);
       setSunset(sunsetData);

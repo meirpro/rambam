@@ -43,32 +43,33 @@ export function formatDateString(date: Date): string {
 }
 
 /**
- * Get today's date in Israel timezone
+ * Get today's civil date in user's local timezone
+ * Used for sunset API calls which need civil calendar dates
  * @returns Date string (YYYY-MM-DD)
  */
+export function getLocalDate(): string {
+  return formatDateString(new Date());
+}
+
+/**
+ * @deprecated Use getLocalDate() instead
+ */
 export function getTodayInIsrael(): string {
-  const now = new Date();
-  const israelTime = new Date(
-    now.toLocaleString("en-US", { timeZone: "Asia/Jerusalem" }),
-  );
-  return formatDateString(israelTime);
+  return getLocalDate();
 }
 
 /**
  * Get the current Jewish date, accounting for sunset
  * Jewish day starts at sunset, so after sunset we're in the next day
- * @param sunset - Sunset time data (optional)
+ * Uses user's LOCAL time and their location's sunset
+ * @param sunset - Sunset time data from user's location (optional)
  * @returns Date string for the current Jewish day (YYYY-MM-DD)
  */
 export function getJewishDate(sunset?: SunsetData | null): string {
   const now = new Date();
-  const israelTimeStr = now.toLocaleString("en-US", {
-    timeZone: "Asia/Jerusalem",
-  });
-  const israelTime = new Date(israelTimeStr);
 
-  const hour = israelTime.getHours();
-  const minute = israelTime.getMinutes();
+  const hour = now.getHours();
+  const minute = now.getMinutes();
 
   // Default sunset to 18:00 if not provided
   const sunsetHour = sunset?.hour ?? 18;
@@ -80,10 +81,12 @@ export function getJewishDate(sunset?: SunsetData | null): string {
 
   // If past sunset, advance to next day
   if (isPastSunset) {
-    israelTime.setDate(israelTime.getDate() + 1);
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return formatDateString(tomorrow);
   }
 
-  return formatDateString(israelTime);
+  return formatDateString(now);
 }
 
 /**

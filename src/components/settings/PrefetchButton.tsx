@@ -4,7 +4,8 @@ import { useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 import { useAppStore } from "@/stores/appStore";
-import { getTodayInIsrael } from "@/lib/dates";
+import { useLocationStore } from "@/stores/locationStore";
+import { getJewishDate } from "@/lib/dates";
 import {
   prefetchWeekAhead,
   canPrefetch,
@@ -16,6 +17,7 @@ type PrefetchState = "idle" | "prefetching" | "success" | "error";
 export function PrefetchButton() {
   const t = useTranslations("offline");
   const studyPath = useAppStore((state) => state.studyPath);
+  const sunset = useLocationStore((state) => state.sunset);
   const [state, setState] = useState<PrefetchState>("idle");
   const [progress, setProgress] = useState<PrefetchProgress | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -31,7 +33,7 @@ export function PrefetchButton() {
     setErrorMessage(null);
 
     try {
-      const today = getTodayInIsrael();
+      const today = getJewishDate(sunset);
       const result = await prefetchWeekAhead(today, studyPath, (p) => {
         setProgress(p);
       });
@@ -58,7 +60,7 @@ export function PrefetchButton() {
       setState("error");
       setErrorMessage(error instanceof Error ? error.message : t("tryAgain"));
     }
-  }, [studyPath, t]);
+  }, [studyPath, sunset, t]);
 
   const isDisabled = state === "prefetching";
   const progressPercent = progress

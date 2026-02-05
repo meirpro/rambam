@@ -8,7 +8,8 @@ import type { StudyPath } from "@/types";
 import { fetchCalendar, fetchHalakhot } from "./sefaria";
 import { fetchHebrewDate } from "./hebcal";
 import { getCalendarFromDB, getMeta, setMeta } from "./database";
-import { getTodayInIsrael, formatDateString } from "@/lib/dates";
+import { getJewishDate, formatDateString } from "@/lib/dates";
+import { useLocationStore } from "@/stores/locationStore";
 import { useAppStore } from "@/stores/appStore";
 
 // Sync interval: 30 minutes
@@ -43,11 +44,13 @@ function canSync(): boolean {
 }
 
 /**
- * Get the next 3 days (today + 2)
+ * Get the next 3 days (today + 2) based on Jewish date
  */
 function getUpcomingDates(): string[] {
   const dates: string[] = [];
-  const today = new Date(getTodayInIsrael());
+  const sunset = useLocationStore.getState().sunset;
+  const todayStr = getJewishDate(sunset);
+  const today = new Date(todayStr);
 
   for (let i = 0; i < 3; i++) {
     dates.push(formatDateString(today));
@@ -89,7 +92,8 @@ async function syncPath(path: StudyPath): Promise<boolean> {
  * Check if daily prefetch should run
  */
 async function shouldRunDailyPrefetch(): Promise<boolean> {
-  const today = getTodayInIsrael();
+  const sunset = useLocationStore.getState().sunset;
+  const today = getJewishDate(sunset);
   const lastPrefetch = await getMeta<string>(PREFETCH_KEY);
 
   // Run if never prefetched or last prefetch was before today
@@ -102,7 +106,8 @@ async function shouldRunDailyPrefetch(): Promise<boolean> {
  */
 async function runDailyPrefetch(): Promise<void> {
   const studyPath = useAppStore.getState().studyPath;
-  const today = new Date(getTodayInIsrael());
+  const sunset = useLocationStore.getState().sunset;
+  const today = new Date(getJewishDate(sunset));
   const setDayData = useAppStore.getState().setDayData;
 
   console.log(`[BackgroundSync] Running daily prefetch for ${studyPath}`);
@@ -140,7 +145,8 @@ async function runDailyPrefetch(): Promise<void> {
   }
 
   // Mark prefetch as done for today
-  await setMeta(PREFETCH_KEY, getTodayInIsrael());
+  const sunsetForMeta = useLocationStore.getState().sunset;
+  await setMeta(PREFETCH_KEY, getJewishDate(sunsetForMeta));
 }
 
 /**
