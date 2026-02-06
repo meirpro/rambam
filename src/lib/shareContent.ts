@@ -19,6 +19,7 @@ interface ShareContent {
   text: string;
   url: string;
   hashtags: string[];
+  title: string;
 }
 
 const APP_URL = "https://rambam.meir.pro";
@@ -52,6 +53,12 @@ const PATH_INFO: Record<
 /**
  * Generate share text content
  */
+// App title localized
+const APP_TITLE = {
+  en: "Daily Rambam",
+  he: "רמב״ם יומי",
+};
+
 export function generateShareContent(
   options: ShareContentOptions,
 ): ShareContent {
@@ -112,6 +119,7 @@ export function generateShareContent(
     text: lines.join("\n"),
     url: APP_URL,
     hashtags,
+    title: isHebrew ? APP_TITLE.he : APP_TITLE.en,
   };
 }
 
@@ -119,13 +127,13 @@ export function generateShareContent(
  * Share content using Web Share API or clipboard fallback
  */
 export async function shareContent(content: ShareContent): Promise<boolean> {
-  const { text } = content;
+  const { text, title } = content;
 
   // Try Web Share API first (mobile)
   if (navigator.share) {
     try {
       await navigator.share({
-        title: "Daily Rambam",
+        title,
         text,
       });
       return true;

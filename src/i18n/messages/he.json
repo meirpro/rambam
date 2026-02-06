@@ -143,7 +143,9 @@
     "confirmChangeDate": "האם לשנות את תאריך ההתחלה ל-{date}?",
     "allComplete": "סיימת הכל!",
     "allCompleteHint": "פריטים שהושלמו מוסתרים. ניתן לשנות זאת בהגדרות תחת \"הסתר שהושלמו\".",
-    "openSettings": "פתח הגדרות"
+    "openSettings": "פתח הגדרות",
+    "hiddenEntries": "{count} {count, plural, one {פריט מוסתר} other {פריטים מוסתרים}}",
+    "tapToShow": "לחץ להצגה"
   },
   "dates": {
     "today": "היום",
@@ -187,6 +189,8 @@
     "complete": "הושלם",
     "partial": "חלקי",
     "today": "היום",
+    "bookmark": "סימנייה",
+    "note": "הערה",
     "loadingMore": "טוען...",
     "jumpToToday": "קפוץ להיום",
     "prevIncomplete": "הקודם שלא הושלם",

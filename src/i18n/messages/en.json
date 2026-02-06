@@ -143,7 +143,9 @@
     "confirmChangeDate": "Change start date to {date}?",
     "allComplete": "All caught up!",
     "allCompleteHint": "Completed items are hidden. You can change this in Settings under \"Hide completed\".",
-    "openSettings": "Open Settings"
+    "openSettings": "Open Settings",
+    "hiddenEntries": "{count} {count, plural, one {entry} other {entries}} hidden",
+    "tapToShow": "Tap to show"
   },
   "dates": {
     "today": "Today",
@@ -187,6 +189,8 @@
     "complete": "Complete",
     "partial": "Partial",
     "today": "Today",
+    "bookmark": "Bookmark",
+    "note": "Note",
     "loadingMore": "Loading more...",
     "jumpToToday": "Jump to today",
     "prevIncomplete": "Previous incomplete",

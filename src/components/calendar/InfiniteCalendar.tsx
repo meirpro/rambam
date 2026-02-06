@@ -29,6 +29,8 @@ function CalendarMonth({
   onDateSelect,
   monthIndex,
   isHebrew,
+  bookmarkDates,
+  summaryDates,
 }: {
   month: HebrewMonthData;
   today: string;
@@ -37,6 +39,8 @@ function CalendarMonth({
   onDateSelect: (date: string) => void;
   monthIndex: number;
   isHebrew: boolean;
+  bookmarkDates: Set<string>;
+  summaryDates: Set<string>;
 }) {
   // Get active paths count to determine if we should use multi-path mode
   const activePaths = useAppStore((state) => state.activePaths) ?? ["rambam3"];
@@ -76,6 +80,8 @@ function CalendarMonth({
         multiPathCompletionMap={
           useMultiPathMode ? multiPathCompletionMap : undefined
         }
+        bookmarkDates={bookmarkDates}
+        summaryDates={summaryDates}
         onDateSelect={onDateSelect}
       />
     </div>
@@ -104,6 +110,34 @@ export function InfiniteCalendar({
   const activePaths = useAppStore((state) => state.activePaths) ?? ["rambam3"];
   const days = useAppStore((state) => state.days);
   const done = useAppStore((state) => state.done);
+
+  // Get bookmarks and summaries for indicator icons
+  const bookmarks = useAppStore((state) => state.bookmarks);
+  const summaries = useAppStore((state) => state.summaries);
+
+  // Compute sets of dates with bookmarks and summaries
+  const { bookmarkDates, summaryDates } = useMemo(() => {
+    const bDates = new Set<string>();
+    const sDates = new Set<string>();
+
+    // Extract dates from bookmark keys (format: "path:date:index")
+    Object.keys(bookmarks).forEach((key) => {
+      const parts = key.split(":");
+      if (parts.length >= 2) {
+        bDates.add(parts[1]); // date is second part
+      }
+    });
+
+    // Extract dates from summary keys (format: "path:date")
+    Object.keys(summaries).forEach((key) => {
+      const parts = key.split(":");
+      if (parts.length >= 2) {
+        sDates.add(parts[1]); // date is second part
+      }
+    });
+
+    return { bookmarkDates: bDates, summaryDates: sDates };
+  }, [bookmarks, summaries]);
 
   // Calculate max date (5 months from today for testing)
   const maxDate = useMemo(() => {
@@ -365,7 +399,7 @@ export function InfiniteCalendar({
       >
         {/* Modal content */}
         <div
-          className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col max-h-[80vh]"
+          className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh]"
           dir={isHebrew ? "rtl" : "ltr"}
         >
           {/* Title bar with close button */}
@@ -409,6 +443,8 @@ export function InfiniteCalendar({
                 onDateSelect={handleDateSelect}
                 monthIndex={index}
                 isHebrew={isHebrew}
+                bookmarkDates={bookmarkDates}
+                summaryDates={summaryDates}
               />
             ))}
 
@@ -512,21 +548,33 @@ export function InfiniteCalendar({
               </button>
             </div>
 
-            {/* Legend - smaller, below navigation */}
-            <div className="px-4 py-2 border-t border-gray-100 flex items-center justify-center gap-4 text-xs text-gray-600">
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded bg-green-200 flex items-center justify-center">
-                  <span className="text-green-700 text-[6px] font-bold">✓</span>
+            {/* Legend - below navigation */}
+            <div className="px-4 py-2.5 border-t border-gray-100 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-sm text-gray-600">
+              <div className="flex items-center gap-1.5">
+                <div className="w-4 h-4 rounded bg-green-200 flex items-center justify-center">
+                  <span className="text-green-700 text-[8px] font-bold">✓</span>
                 </div>
                 <span>{t("complete")}</span>
               </div>
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded bg-amber-200" />
+              <div className="flex items-center gap-1.5">
+                <div className="w-4 h-4 rounded bg-amber-200" />
                 <span>{t("partial", { percent: "%" })}</span>
               </div>
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded ring-2 ring-blue-600" />
+              <div className="flex items-center gap-1.5">
+                <div className="w-4 h-4 rounded ring-2 ring-blue-600" />
                 <span>{t("today")}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="relative w-4 h-4 rounded bg-gray-100">
+                  <div className="absolute top-0 right-0 w-0 h-0 border-t-[6px] border-r-[6px] border-t-blue-500 border-r-blue-500 border-l-[6px] border-b-[6px] border-l-transparent border-b-transparent rounded-tr" />
+                </div>
+                <span>{t("bookmark")}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-4 h-4 rounded bg-green-200 flex items-center justify-center">
+                  <span className="text-[8px]">💭</span>
+                </div>
+                <span>{t("note")}</span>
               </div>
             </div>
           </div>
@@ -545,13 +593,13 @@ function DayNamesHeader({ isHebrew }: { isHebrew: boolean }) {
 
   return (
     <div
-      className="grid grid-cols-7 gap-1 px-4 py-2 border-b border-gray-200 bg-white shrink-0"
+      className="grid grid-cols-7 gap-1.5 px-4 py-2 border-b border-gray-200 bg-white shrink-0"
       dir={isHebrew ? "rtl" : "ltr"}
     >
       {dayNames.map((name, index) => (
         <div
           key={index}
-          className="w-10 h-6 flex items-center justify-center text-xs font-medium text-gray-500"
+          className="h-6 flex items-center justify-center text-xs font-medium text-gray-500"
         >
           {name}
         </div>

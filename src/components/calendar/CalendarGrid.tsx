@@ -15,6 +15,10 @@ interface CalendarGridProps {
   completionMap: Record<string, DayCompletionStatus>;
   /** Multi-path completion map (optional, for multi-path mode) */
   multiPathCompletionMap?: Record<string, MultiPathDayStatus>;
+  /** Set of dates that have bookmarks */
+  bookmarkDates?: Set<string>;
+  /** Set of dates that have summaries/notes */
+  summaryDates?: Set<string>;
   onDateSelect: (date: string) => void;
 }
 
@@ -29,6 +33,8 @@ export function CalendarGrid({
   startDate,
   completionMap,
   multiPathCompletionMap,
+  bookmarkDates,
+  summaryDates,
   onDateSelect,
 }: CalendarGridProps) {
   const locale = useLocale();
@@ -57,7 +63,7 @@ export function CalendarGrid({
     <div className="px-4 py-2">
       {/* Calendar grid - day names are in sticky header */}
       <div
-        className="grid grid-cols-7 gap-1"
+        className="grid grid-cols-7 gap-1.5"
         dir={isHebrew ? "rtl" : "ltr"}
         role="grid"
         aria-label="Calendar"
@@ -87,6 +93,8 @@ export function CalendarGrid({
               isBeforeStart={isBeforeStart}
               completionStatus={completionMap[dateStr] || null}
               multiPathStatus={multiPathCompletionMap?.[dateStr] || null}
+              hasBookmark={bookmarkDates?.has(dateStr)}
+              hasSummary={summaryDates?.has(dateStr)}
               onClick={() => onDateSelect(dateStr)}
             />
           );

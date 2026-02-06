@@ -62,12 +62,40 @@ export function Calendar({
   const activePaths = useAppStore((state) => state.activePaths) ?? ["rambam3"];
   const useMultiPathMode = activePaths.length > 1;
 
+  // Get bookmarks and summaries for indicator icons
+  const bookmarks = useAppStore((state) => state.bookmarks);
+  const summaries = useAppStore((state) => state.summaries);
+
   // Get completion data for the displayed Hebrew month
   // Uses Gregorian dates from the Hebrew month's days array
   const completionMap = useHebrewMonthCompletion(hebrewMonth.days);
   const multiPathCompletionMap = useMultiPathHebrewMonthCompletion(
     hebrewMonth.days,
   );
+
+  // Compute sets of dates with bookmarks and summaries
+  const { bookmarkDates, summaryDates } = useMemo(() => {
+    const bDates = new Set<string>();
+    const sDates = new Set<string>();
+
+    // Extract dates from bookmark keys (format: "path:date:index")
+    Object.keys(bookmarks).forEach((key) => {
+      const parts = key.split(":");
+      if (parts.length >= 2) {
+        bDates.add(parts[1]); // date is second part
+      }
+    });
+
+    // Extract dates from summary keys (format: "path:date")
+    Object.keys(summaries).forEach((key) => {
+      const parts = key.split(":");
+      if (parts.length >= 2) {
+        sDates.add(parts[1]); // date is second part
+      }
+    });
+
+    return { bookmarkDates: bDates, summaryDates: sDates };
+  }, [bookmarks, summaries]);
 
   // Navigate to previous Hebrew month
   const handlePreviousMonth = useCallback(() => {
@@ -132,7 +160,7 @@ export function Calendar({
       >
         {/* Modal content */}
         <div
-          className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden"
+          className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden"
           dir={isHebrew ? "rtl" : "ltr"}
         >
           {/* Title bar with close button */}
@@ -168,29 +196,43 @@ export function Calendar({
             multiPathCompletionMap={
               useMultiPathMode ? multiPathCompletionMap : undefined
             }
+            bookmarkDates={bookmarkDates}
+            summaryDates={summaryDates}
             onDateSelect={handleDateSelect}
           />
 
           {/* Legend */}
           <div
-            className="px-4 pb-4 flex items-center justify-center gap-4 text-xs text-gray-500"
+            className="px-4 pb-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm text-gray-600"
             dir={isHebrew ? "rtl" : "ltr"}
           >
-            <div className="flex items-center gap-1">
-              <div className="w-4 h-4 rounded bg-green-100 flex items-center justify-center">
-                <span className="text-green-600 text-[8px]">✓</span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-4 h-4 rounded bg-green-200 flex items-center justify-center">
+                <span className="text-green-700 text-[8px] font-bold">✓</span>
               </div>
               <span>{t("complete")}</span>
             </div>
-            <div className="flex items-center gap-1">
-              <div className="w-4 h-4 rounded bg-amber-50 flex items-center justify-center">
-                <span className="text-amber-600 text-[6px]">50%</span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-4 h-4 rounded bg-amber-200 flex items-center justify-center">
+                <span className="text-amber-700 text-[6px]">50%</span>
               </div>
               <span>{t("partial", { percent: "%" })}</span>
             </div>
-            <div className="flex items-center gap-1">
-              <div className="w-4 h-4 rounded ring-2 ring-blue-500" />
+            <div className="flex items-center gap-1.5">
+              <div className="w-4 h-4 rounded ring-2 ring-blue-600" />
               <span>{t("today")}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="relative w-4 h-4 rounded bg-gray-100">
+                <div className="absolute top-0 right-0 w-0 h-0 border-t-[6px] border-r-[6px] border-t-blue-500 border-r-blue-500 border-l-[6px] border-b-[6px] border-l-transparent border-b-transparent rounded-tr" />
+              </div>
+              <span>{t("bookmark")}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-4 h-4 rounded bg-green-200 flex items-center justify-center">
+                <span className="text-[8px]">💭</span>
+              </div>
+              <span>{t("note")}</span>
             </div>
           </div>
         </div>

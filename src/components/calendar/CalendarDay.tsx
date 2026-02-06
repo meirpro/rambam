@@ -14,6 +14,10 @@ interface CalendarDayProps {
   completionStatus: DayCompletionStatus | null;
   /** Multi-path completion status (optional, for multi-path mode) */
   multiPathStatus?: MultiPathDayStatus | null;
+  /** Whether this day has any bookmarks */
+  hasBookmark?: boolean;
+  /** Whether this day has a summary/note */
+  hasSummary?: boolean;
   onClick: () => void;
 }
 
@@ -30,6 +34,8 @@ export function CalendarDay({
   isBeforeStart,
   completionStatus,
   multiPathStatus,
+  hasBookmark,
+  hasSummary,
   onClick,
 }: CalendarDayProps) {
   // Determine visual state
@@ -50,9 +56,9 @@ export function CalendarDay({
     ? multiPathStatus.hasAnyProgress
     : hasProgress;
 
-  // Base styles
+  // Base styles - aspect-square ensures equal width/height, w-full fills grid cell
   let containerClasses =
-    "relative w-10 h-11 flex flex-col items-center justify-center rounded-lg text-sm font-medium transition-colors";
+    "relative w-full aspect-square flex flex-col items-center justify-center rounded-lg text-sm font-medium transition-colors";
 
   // State-based styling - WCAG AA contrast compliant
   if (isDisabled) {
@@ -192,6 +198,18 @@ export function CalendarDay({
           <span className="text-white text-[10px] leading-none">✓</span>
         </div>
       )}
+
+      {/* Bookmark indicator - top right corner */}
+      {hasBookmark && !isDisabled && (
+        <div className="absolute top-0 right-0 w-0 h-0 border-t-[8px] border-r-[8px] border-t-blue-500 border-r-blue-500 border-l-[8px] border-b-[8px] border-l-transparent border-b-transparent rounded-tr-lg" />
+      )}
+
+      {/* Summary/note indicator - bottom left corner */}
+      {hasSummary && !isDisabled && (
+        <div className="absolute bottom-0.5 left-0.5">
+          <span className="text-[8px]">💭</span>
+        </div>
+      )}
     </button>
   );
 }
@@ -200,5 +218,5 @@ export function CalendarDay({
  * Empty day cell for padding at start/end of month
  */
 export function EmptyDay() {
-  return <div className="w-10 h-11" />;
+  return <div className="w-full aspect-square" />;
 }
