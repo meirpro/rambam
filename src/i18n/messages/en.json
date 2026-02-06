@@ -32,7 +32,8 @@
       "after1h": "Hide after 1 hour",
       "after24h": "Hide after 24 hours"
     },
-    "changelog": "Changelog & Credits",
+    "changelog": "Changelog",
+    "credits": "Credits",
     "version": "Version",
     "cycle46": "Cycle 46",
     "yes": "Yes",

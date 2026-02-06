@@ -4,7 +4,7 @@
   "description": "עקוב אחר לימוד הרמב\"ם היומי שלך (1 או 3 פרקים) עם כרטיסיות להחלקה",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "background_color": "#D4A843",
   "theme_color": "#2563eb",
   "orientation": "portrait",
   "dir": "rtl",

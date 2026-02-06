@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback, useRef } from "react";
+import { useEffect, useCallback, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 interface BottomSheetProps {
@@ -10,6 +10,9 @@ interface BottomSheetProps {
   children: React.ReactNode;
 }
 
+const DISMISS_THRESHOLD = 100; // px to drag before dismissing
+const VELOCITY_THRESHOLD = 0.5; // px/ms - fast swipe dismisses even if < threshold
+
 export function BottomSheet({
   isOpen,
   onClose,
@@ -17,6 +20,46 @@ export function BottomSheet({
   children,
 }: BottomSheetProps) {
   const sheetRef = useRef<HTMLDivElement>(null);
+
+  // Swipe-to-dismiss state
+  const [dragY, setDragY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const startY = useRef(0);
+  const startTime = useRef(0);
+
+  // Touch handlers for swipe-to-dismiss
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    startY.current = e.touches[0].clientY;
+    startTime.current = Date.now();
+    setIsDragging(true);
+  }, []);
+
+  const handleTouchMove = useCallback(
+    (e: React.TouchEvent) => {
+      if (!isDragging) return;
+      const currentY = e.touches[0].clientY;
+      const delta = currentY - startY.current;
+      // Only allow dragging down (positive delta)
+      setDragY(Math.max(0, delta));
+    },
+    [isDragging],
+  );
+
+  const handleTouchEnd = useCallback(() => {
+    if (!isDragging) return;
+
+    const elapsed = Date.now() - startTime.current;
+    const velocity = dragY / elapsed; // px/ms
+
+    // Dismiss if dragged far enough OR if swiped fast enough
+    if (dragY > DISMISS_THRESHOLD || velocity > VELOCITY_THRESHOLD) {
+      onClose();
+    }
+
+    // Reset state
+    setDragY(0);
+    setIsDragging(false);
+  }, [isDragging, dragY, onClose]);
 
   // Handle escape key
   const handleKeyDown = useCallback(
@@ -58,9 +101,16 @@ export function BottomSheet({
         aria-modal="true"
         aria-labelledby={title ? "sheet-title" : undefined}
         className="fixed bottom-0 left-0 right-0 z-[999] bg-white rounded-t-2xl shadow-xl max-h-[85vh] overflow-hidden animate-slide-up"
+        style={{
+          transform: dragY > 0 ? `translateY(${dragY}px)` : undefined,
+          transition: isDragging ? "none" : "transform 0.2s ease-out",
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
-        {/* Handle bar */}
-        <div className="flex justify-center py-3">
+        {/* Handle bar - visual drag indicator */}
+        <div className="flex justify-center py-3 cursor-grab active:cursor-grabbing touch-none">
           <div className="w-10 h-1 bg-gray-300 rounded-full" />
         </div>
 

@@ -65,7 +65,7 @@ export function Header({
           alt="Logo"
           width={36}
           height={36}
-          className="rounded-lg"
+          className={`rounded-lg ${isHebrew ? "" : "-scale-x-100"}`}
         />
         <h1 className="text-2xl font-bold">{t("title")}</h1>
       </div>
@@ -158,12 +158,14 @@ export function Header({
           className="relative w-10 h-10 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 active:bg-white/40 transition-colors"
           aria-label={tBookmarks("title")}
         >
-          {bookmarkCount > 0 ? (
-            <span className="text-white text-sm font-bold">
-              {bookmarkCount > 99 ? "99+" : bookmarkCount}
+          <BookmarkIcon size={24} filled={bookmarkCount > 0} />
+          {bookmarkCount > 0 && (
+            <span
+              className="absolute inset-0 flex items-center justify-center text-[9px] font-bold leading-none pb-1"
+              style={{ color: "var(--app-bg)" }}
+            >
+              {bookmarkCount > 99 ? "99" : bookmarkCount}
             </span>
-          ) : (
-            <BookmarkIcon size={20} />
           )}
         </button>
 

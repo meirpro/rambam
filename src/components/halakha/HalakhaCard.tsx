@@ -243,7 +243,7 @@ export function HalakhaCard({
   // content from the Sefaria API, not user-generated content.
 
   return (
-    <div className="relative">
+    <div className="relative mt-3 mx-2 sm:mx-0">
       {/* Swipe feedback overlays - positioned behind the card */}
       {state.isSwiping && (
         <>
@@ -251,7 +251,7 @@ export function HalakhaCard({
           {state.direction === "right" && (
             <div
               className={`
-                absolute inset-y-0 left-0 sm:rounded-xl rounded-none
+                absolute inset-y-0 left-0 rounded-xl
                 flex items-center justify-center
                 transition-colors duration-150
                 ${
@@ -291,7 +291,7 @@ export function HalakhaCard({
           {state.direction === "left" && (
             <div
               className={`
-                absolute inset-y-0 right-0 sm:rounded-xl rounded-none
+                absolute inset-y-0 right-0 rounded-xl
                 flex items-center justify-center
                 transition-colors duration-150
                 ${
@@ -336,13 +336,12 @@ export function HalakhaCard({
       {/* The actual card */}
       <div
         className={`
-          bg-white border-2 sm:rounded-xl rounded-none p-4
+          bg-white border-2 rounded-xl p-4
           text-lg leading-relaxed
           relative cursor-grab active:cursor-grabbing
           shadow-sm hover:shadow-md
           touch-pan-y select-none
           transition-[box-shadow]
-          sm:border-2 border-y-2 border-x-0
           ${
             isCompleted
               ? "opacity-50 bg-green-50 border-green-200"
@@ -360,7 +359,7 @@ export function HalakhaCard({
               e.stopPropagation();
               setShowInfoSheet(true);
             }}
-            className="absolute -top-2 left-2 sm:-left-2
+            className="absolute -top-3 -left-1
                        w-6 h-6 text-gray-400 hover:text-gray-600 bg-white border border-gray-200
                        flex items-center justify-center rounded-full hover:bg-gray-100
                        transition-colors z-[1] shadow-sm"
@@ -385,7 +384,7 @@ export function HalakhaCard({
         {/* Bookmark indicator - positioned on right corner */}
         {isBookmarked && (
           <div
-            className="absolute -top-2 right-2 sm:-right-2
+            className="absolute -top-3 -right-1
                        w-6 h-6 text-amber-500 bg-white border border-amber-200
                        flex items-center justify-center rounded-full shadow-sm z-[1]"
             aria-label="Bookmarked"

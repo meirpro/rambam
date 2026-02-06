@@ -130,7 +130,7 @@ export function useSwipeGesture(
   const handleEnd = useCallback(() => {
     clearLongPressTimer();
 
-    // Don't process swipes if we triggered a long press
+    // Don't process if we triggered a long press
     if (hasTriggeredLongPress.current) {
       hasTriggeredLongPress.current = false;
       setState({
@@ -154,6 +154,19 @@ export function useSwipeGesture(
       else if (deltaX < -threshold) {
         onSwipeLeft?.();
       }
+      // Reset tap tracking on swipe so it doesn't count as first tap
+      lastTapTime.current = 0;
+    } else {
+      // No swipe — this was a clean tap, check for double-tap
+      const now = Date.now();
+      const timeSinceLastTap = now - lastTapTime.current;
+
+      if (timeSinceLastTap < DOUBLE_TAP_DELAY && timeSinceLastTap > 0) {
+        onDoubleTap?.();
+        lastTapTime.current = 0;
+      } else {
+        lastTapTime.current = now;
+      }
     }
 
     // Reset state
@@ -164,32 +177,21 @@ export function useSwipeGesture(
       direction: null,
     });
     isMouseDown.current = false;
-  }, [state, threshold, onSwipeRight, onSwipeLeft, clearLongPressTimer]);
-
-  const handleDoubleTap = useCallback(() => {
-    const now = Date.now();
-    const timeSinceLastTap = now - lastTapTime.current;
-
-    if (timeSinceLastTap < DOUBLE_TAP_DELAY && timeSinceLastTap > 0) {
-      onDoubleTap?.();
-      lastTapTime.current = 0;
-      return true;
-    }
-
-    lastTapTime.current = now;
-    return false;
-  }, [onDoubleTap]);
+  }, [
+    state,
+    threshold,
+    onSwipeRight,
+    onSwipeLeft,
+    onDoubleTap,
+    clearLongPressTimer,
+  ]);
 
   // Touch handlers
   const onTouchStart = useCallback(
     (e: React.TouchEvent) => {
-      if (handleDoubleTap()) {
-        e.preventDefault();
-        return;
-      }
       handleStart(e.touches[0].clientX, e.touches[0].clientY);
     },
-    [handleStart, handleDoubleTap],
+    [handleStart],
   );
 
   const onTouchMove = useCallback(
@@ -209,16 +211,11 @@ export function useSwipeGesture(
   // Mouse handlers
   const onMouseDown = useCallback(
     (e: React.MouseEvent) => {
-      // Check for double-click (same logic as touch)
-      if (handleDoubleTap()) {
-        e.preventDefault();
-        return;
-      }
       isMouseDown.current = true;
       handleStart(e.clientX, e.clientY);
       e.preventDefault();
     },
-    [handleStart, handleDoubleTap],
+    [handleStart],
   );
 
   const onMouseMove = useCallback(

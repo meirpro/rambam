@@ -23,8 +23,31 @@ interface ShareContent {
 
 const APP_URL = "https://rambam.meir.pro";
 
-// Hashtags for sharing
-const HASHTAGS = ["RambamYomi", "DailyRambam", "Cycle46", "Torah"];
+// Path-specific display names and hashtags
+const PATH_INFO: Record<
+  StudyPath,
+  {
+    en: string;
+    he: string;
+    hashtag: string;
+  }
+> = {
+  rambam3: {
+    en: "Rambam 3 Chapters",
+    he: "רמב\"ם ג' פרקים",
+    hashtag: "Rambam3Chapters",
+  },
+  rambam1: {
+    en: "Rambam 1 Chapter",
+    he: 'רמב"ם פרק אחד',
+    hashtag: "Rambam1Chapter",
+  },
+  mitzvot: {
+    en: "Sefer HaMitzvot",
+    he: "ספר המצוות",
+    hashtag: "SeferHaMitzvot",
+  },
+};
 
 /**
  * Generate share text content
@@ -33,6 +56,7 @@ export function generateShareContent(
   options: ShareContentOptions,
 ): ShareContent {
   const {
+    path,
     summaryText,
     dayTitle,
     completedDays,
@@ -41,15 +65,19 @@ export function generateShareContent(
   } = options;
 
   const isHebrew = locale === "he";
-  const hashtags = HASHTAGS;
+  const pathInfo = PATH_INFO[path];
+  const hashtags = [pathInfo.hashtag, "RambamYomi", "Cycle46", "Torah"];
   const hashtagsText = hashtags.map((h) => `#${h}`).join(" ");
 
   // Build the share text
   const lines: string[] = [];
 
-  // Header
+  // Header with study path
+  const pathName = isHebrew ? pathInfo.he : pathInfo.en;
   lines.push(
-    isHebrew ? '📚 ההתקדמות שלי ברמב"ם' : "📚 My Rambam Study Progress",
+    isHebrew
+      ? `📚 ההתקדמות שלי ב${pathName}`
+      : `📚 My ${pathName} Study Progress`,
   );
   lines.push("");
 

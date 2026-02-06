@@ -8,8 +8,9 @@ import { BookmarkIcon } from "@/components/ui/icons/BookmarkIcon";
 import { useAppStore, isHalakhaBookmarked } from "@/stores/appStore";
 import {
   sefariaUrl,
-  chabadRambamUrl,
-  chabadMitzvotUrl,
+  sefariaHalakhaUrl,
+  chabadRambamHalakhaUrl,
+  chabadMitzvotHalakhaUrl,
 } from "@/lib/externalLinks";
 import type { DayData, StudyPath } from "@/types";
 
@@ -59,12 +60,30 @@ export function HalakhaInfoSheet({
   // Get the reference for external links
   const ref = dayData.ref;
 
-  // Sefaria and Chabad links based on study path
-  const sefariaLink = sefariaUrl(ref);
+  // Get the halakha text for text fragment scrolling (Chabad.org)
+  const halakhaText = dayData.texts?.[halakhaIndex]?.he || "";
+
+  // Get all texts for duplicate checking (to find unique snippet)
+  const allTexts = dayData.texts?.map((t) => t.he) || [];
+
+  // Sefaria link - different logic for Sefer HaMitzvot vs Rambam
+  // Sefer HaMitzvot: each halakha is a separate commandment with its own ref
+  // Rambam: halakhot are within chapters, need to compute chapter:halakha
+  const sefariaLink =
+    studyPath === "mitzvot" && dayData.refs?.[halakhaIndex]
+      ? `${sefariaUrl(dayData.refs[halakhaIndex])}?lang=bi`
+      : sefariaHalakhaUrl(ref, halakhaIndex, dayData.chapterBreaks);
+
+  // Chabad link with text fragment for scrolling
   const chabadLink =
     studyPath === "mitzvot"
-      ? chabadMitzvotUrl(date)
-      : chabadRambamUrl(date, studyPath === "rambam1" ? 1 : 3);
+      ? chabadMitzvotHalakhaUrl(date, halakhaText, allTexts)
+      : chabadRambamHalakhaUrl(
+          date,
+          studyPath === "rambam1" ? 1 : 3,
+          halakhaText,
+          allTexts,
+        );
 
   const handleToggleBookmark = useCallback(() => {
     if (isBookmarked) {
