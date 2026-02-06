@@ -18,7 +18,6 @@ const SYNC_INTERVAL_MS = 30 * 60 * 1000;
 
 // Daily prefetch: once per day
 const PREFETCH_KEY = "lastDailyPrefetch";
-const PREFETCH_DAYS_AHEAD = 3; // Prefetch 3 days ahead
 
 // Track if sync is already running
 let syncInProgress = false;
@@ -45,15 +44,15 @@ function canSync(): boolean {
 }
 
 /**
- * Get the next 3 days (today + 2) based on Jewish date
+ * Get upcoming dates based on Jewish date
  */
-function getUpcomingDates(): string[] {
+function getUpcomingDates(count = 3): string[] {
   const dates: string[] = [];
   const sunset = useLocationStore.getState().sunset;
   const todayStr = getJewishDate(sunset);
   const today = new Date(todayStr);
 
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < count; i++) {
     dates.push(formatDateString(today));
     today.setDate(today.getDate() + 1);
   }
@@ -102,7 +101,7 @@ async function shouldRunDailyPrefetch(): Promise<boolean> {
 }
 
 /**
- * Prefetch upcoming days for the current study path
+ * Prefetch upcoming days for all active study paths
  * Downloads calendar + full text content for the next few days
  * Reports progress through the offline store for UI feedback
  */
@@ -110,61 +109,69 @@ async function runDailyPrefetch(): Promise<{
   success: boolean;
   failed: number;
 }> {
-  const studyPath = useAppStore.getState().studyPath;
+  const { activePaths, daysAhead, setDayData } = useAppStore.getState();
   const sunset = useLocationStore.getState().sunset;
-  const today = new Date(getJewishDate(sunset));
-  const setDayData = useAppStore.getState().setDayData;
+  const todayStr = getJewishDate(sunset);
   const setSyncProgress = useOfflineStore.getState().setSyncProgress;
 
-  console.log(`[BackgroundSync] Running daily prefetch for ${studyPath}`);
+  const totalItems = daysAhead * activePaths.length;
+  console.log(
+    `[BackgroundSync] Running daily prefetch for ${activePaths.join(", ")} (${daysAhead} days)`,
+  );
 
   // Report sync started
   setSyncProgress({
     status: "syncing",
-    total: PREFETCH_DAYS_AHEAD,
+    total: totalItems,
     completed: 0,
   });
 
   let completed = 0;
   let failed = 0;
 
-  for (let i = 0; i < PREFETCH_DAYS_AHEAD; i++) {
-    const date = formatDateString(today);
-    today.setDate(today.getDate() + 1);
+  for (const path of activePaths) {
+    const today = new Date(todayStr);
+    for (let i = 0; i < daysAhead; i++) {
+      const date = formatDateString(today);
+      today.setDate(today.getDate() + 1);
 
-    try {
-      // Fetch calendar entry
-      const calData = await fetchCalendar(date, studyPath);
+      try {
+        // Fetch calendar entry
+        const calData = await fetchCalendar(date, path);
 
-      // Fetch full halakhot text (this saves to IndexedDB)
-      const { halakhot, chapterBreaks } = await fetchHalakhot(calData.ref);
+        // Fetch full halakhot text (this saves to IndexedDB)
+        const { halakhot, chapterBreaks } = await fetchHalakhot(calData.ref);
 
-      // Fetch Hebrew date
-      const dateResult = await fetchHebrewDate(date);
+        // Fetch Hebrew date
+        const dateResult = await fetchHebrewDate(date);
 
-      // Update app store with metadata
-      setDayData(studyPath, date, {
-        he: calData.he,
-        en: calData.en,
-        ref: calData.ref,
-        count: halakhot.length,
-        heDate: dateResult?.he,
-        enDate: dateResult?.en,
-        texts: halakhot,
-        chapterBreaks,
-      });
+        // Update app store with metadata
+        setDayData(path, date, {
+          he: calData.he,
+          en: calData.en,
+          ref: calData.ref,
+          count: halakhot.length,
+          heDate: dateResult?.he,
+          enDate: dateResult?.en,
+          texts: halakhot,
+          chapterBreaks,
+        });
 
-      completed++;
-      setSyncProgress({
-        status: "syncing",
-        total: PREFETCH_DAYS_AHEAD,
-        completed,
-      });
+        completed++;
+        setSyncProgress({
+          status: "syncing",
+          total: totalItems,
+          completed,
+        });
 
-      console.log(`[BackgroundSync] Prefetched ${date}`);
-    } catch (error) {
-      failed++;
-      console.error(`[BackgroundSync] Failed to prefetch ${date}:`, error);
+        console.log(`[BackgroundSync] Prefetched ${path}/${date}`);
+      } catch (error) {
+        failed++;
+        console.error(
+          `[BackgroundSync] Failed to prefetch ${path}/${date}:`,
+          error,
+        );
+      }
     }
   }
 

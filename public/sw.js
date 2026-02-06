@@ -16,10 +16,10 @@ const PRECACHE_ASSETS = [
   "/favicon.ico",
   // App images
   "/logo.png",
-  "/contributors/meir.png",
+  "/contributors/meir.webp",
   "/contributors/claude.jpeg",
   "/contributors/rabbi.jpeg",
-  "/contributors/rambam.png",
+  "/contributors/rambam.webp",
   "/contributors/sefaria.png",
   "/contributors/chabad.png",
   "/contributors/hebcal.png",
@@ -53,7 +53,7 @@ const CACHE_STRATEGIES = {
   },
   // Static assets - CacheFirst
   staticAssets: {
-    pattern: /\.(?:js|css|woff2?|png|jpg|jpeg|gif|svg|ico)$/i,
+    pattern: /\.(?:js|css|woff2?|png|jpg|jpeg|webp|gif|svg|ico)$/i,
     strategy: "cache-first",
     cacheName: "static-assets",
     maxAge: 30 * 24 * 60 * 60, // 30 days

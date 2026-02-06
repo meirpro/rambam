@@ -47,7 +47,8 @@
     "importError": "Error importing file",
     "tutorial": "Tutorial",
     "restartTutorial": "Restart tutorial",
-    "showWhatsNew": "Show what's new"
+    "showWhatsNew": "Show what's new",
+    "daysAheadLabel": "Days ahead for offline"
   },
   "welcome": {
     "title": "Welcome!",

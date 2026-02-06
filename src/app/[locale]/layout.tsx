@@ -4,6 +4,7 @@ import { getMessages } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
 import { Providers } from "@/components/Providers";
+import { notoSansHebrew } from "../fonts";
 import "../globals.css";
 
 export const metadata: Metadata = {
@@ -64,18 +65,17 @@ export default async function LocaleLayout({
   const dir = isRTL ? "rtl" : "ltr";
 
   return (
-    <html lang={locale} dir={dir} translate="no">
+    <html
+      lang={locale}
+      dir={dir}
+      translate="no"
+      className={notoSansHebrew.variable}
+    >
       <head>
         {/* Prevent Google Translate from prompting - we handle Hebrew and English */}
         <meta name="google" content="notranslate" />
         <meta httpEquiv="Content-Language" content="he, en" />
         {/* Preconnect to external resources for faster loading */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
         <link rel="preconnect" href="https://www.sefaria.org" />
         <link rel="preconnect" href="https://www.hebcal.com" />
       </head>

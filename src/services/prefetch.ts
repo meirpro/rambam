@@ -96,18 +96,20 @@ async function prefetchDay(
 }
 
 /**
- * Prefetch content for the next week
+ * Prefetch content for the next N days
  * @param startDate - Start date (YYYY-MM-DD), typically today
  * @param studyPath - The study path to prefetch for
  * @param onProgress - Optional callback for progress updates
+ * @param dayCount - Number of days to prefetch (default 7)
  * @returns Result with success/failure counts
  */
 export async function prefetchWeekAhead(
   startDate: string,
   studyPath: StudyPath,
   onProgress?: (progress: PrefetchProgress) => void,
+  dayCount = 7,
 ): Promise<PrefetchResult> {
-  const days = getNextDays(startDate, 7);
+  const days = getNextDays(startDate, dayCount);
   let completed = 0;
   let failed = 0;
 

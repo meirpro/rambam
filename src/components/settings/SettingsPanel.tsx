@@ -40,9 +40,11 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
   const textLanguage = useAppStore((state) => state.textLanguage);
   const autoMarkPrevious = useAppStore((state) => state.autoMarkPrevious);
   const hideCompleted = useAppStore((state) => state.hideCompleted);
+  const daysAhead = useAppStore((state) => state.daysAhead);
   const setTextLanguage = useAppStore((state) => state.setTextLanguage);
   const setAutoMarkPrevious = useAppStore((state) => state.setAutoMarkPrevious);
   const setHideCompleted = useAppStore((state) => state.setHideCompleted);
+  const setDaysAhead = useAppStore((state) => state.setDaysAhead);
   const resetPath = useAppStore((state) => state.resetPath);
   const resetAll = useAppStore((state) => state.resetAll);
 
@@ -302,6 +304,24 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
                 ? "הורד את התוכן של השבוע הקרוב לשימוש ללא אינטרנט"
                 : "Download next week's content for offline use"}
             </p>
+            <div className="mb-3">
+              <label className="block text-xs text-gray-500 mb-1">
+                {t("daysAheadLabel")}: {daysAhead}
+              </label>
+              <input
+                type="range"
+                min={1}
+                max={14}
+                value={daysAhead}
+                onChange={(e) => setDaysAhead(parseInt(e.target.value))}
+                className="w-full accent-blue-600"
+              />
+              <div className="flex justify-between text-xs text-gray-400 mt-0.5">
+                <span>1</span>
+                <span>7</span>
+                <span>14</span>
+              </div>
+            </div>
             <PrefetchButton />
           </section>
 
@@ -486,7 +506,7 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
                   className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   <Image
-                    src="/contributors/rambam.png"
+                    src="/contributors/rambam.webp"
                     alt="Rambam"
                     width={40}
                     height={40}
@@ -552,7 +572,7 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
                   className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   <Image
-                    src="/contributors/meir.png"
+                    src="/contributors/meir.webp"
                     alt="Meir"
                     width={40}
                     height={40}

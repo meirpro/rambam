@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import React, {
+  useState,
+  useCallback,
+  useRef,
+  useEffect,
+  useMemo,
+} from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useAppStore, countCompleted, isDayComplete } from "@/stores/appStore";
 import { useHalakhaData } from "@/hooks/useHalakhaData";
@@ -24,7 +30,7 @@ interface DayGroupProps {
   showPathBadge?: boolean;
 }
 
-export function DayGroup({
+const DayGroupInner = React.memo(function DayGroup({
   date,
   dayData,
   studyPath,
@@ -41,7 +47,11 @@ export function DayGroup({
   const containerRef = useRef<HTMLDivElement>(null);
   const today = useJewishDate();
 
-  const done = useAppStore((state) => state.done);
+  // Narrow selectors: only re-render when THIS day's completion changes
+  const doneCount = useAppStore((s) => countCompleted(s.done, studyPath, date));
+  const isComplete = useAppStore((s) =>
+    isDayComplete(s.done, studyPath, date, dayData.count),
+  );
   const markAllComplete = useAppStore((state) => state.markAllComplete);
   const resetDay = useAppStore((state) => state.resetDay);
   const { confirm } = useConfirmDialog();
@@ -52,9 +62,6 @@ export function DayGroup({
     studyPath,
     isOpen ? dayData.refs : undefined, // Pass multiple refs for Sefer HaMitzvot
   );
-
-  const doneCount = countCompleted(done, studyPath, date);
-  const isComplete = isDayComplete(done, studyPath, date, dayData.count);
   const isToday = date === today;
 
   // Compute relative date (e.g., "Yesterday", "2 days ago")
@@ -287,4 +294,6 @@ export function DayGroup({
       </div>
     </details>
   );
-}
+});
+
+export { DayGroupInner as DayGroup };

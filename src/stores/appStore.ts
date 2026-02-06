@@ -43,6 +43,7 @@ interface AppStore extends AppSettings {
   togglePath: (path: StudyPath) => void;
   setActivePaths: (paths: StudyPath[]) => void;
   setHideCompleted: (mode: HideCompletedMode) => void;
+  setDaysAhead: (days: number) => void;
 
   // Day data actions
   setDayData: (path: StudyPath, date: string, data: DayData) => void;
@@ -88,6 +89,9 @@ interface AppStore extends AppSettings {
   saveSummary: (path: StudyPath, date: string, text: string) => void;
   getSummary: (path: StudyPath, date: string) => DaySummary | undefined;
   deleteSummary: (path: StudyPath, date: string) => void;
+
+  // Cleanup actions
+  cleanupOldDays: (daysToKeep: number) => void;
 
   // Helper to get current path's start date
   getCurrentStartDate: () => string;
@@ -180,6 +184,9 @@ export const useAppStore = create<AppStore>()(
         }),
 
       setHideCompleted: (mode) => set({ hideCompleted: mode }),
+
+      setDaysAhead: (days) =>
+        set({ daysAhead: Math.max(1, Math.min(14, days)) }),
 
       // Day data actions
       setDayData: (path, date, data) =>
@@ -375,6 +382,51 @@ export const useAppStore = create<AppStore>()(
           return { summaries: newSummaries };
         }),
 
+      // Cleanup: remove completed, non-bookmarked days older than threshold
+      cleanupOldDays: (daysToKeep) =>
+        set((state) => {
+          const threshold = new Date();
+          threshold.setDate(threshold.getDate() - daysToKeep);
+          const thresholdStr = threshold.toISOString().slice(0, 10);
+
+          const newDays = { ...state.days };
+          const newDone = { ...state.done };
+          let changed = false;
+
+          for (const path of Object.keys(newDays) as StudyPath[]) {
+            const pathDays = { ...newDays[path] };
+            for (const date of Object.keys(pathDays)) {
+              if (date >= thresholdStr) continue; // Not old enough
+
+              const dayData = pathDays[date];
+              if (!dayData) continue;
+
+              // Check if fully completed
+              const prefix = `${path}:${date}:`;
+              const doneKeys = Object.keys(newDone).filter((k) =>
+                k.startsWith(prefix),
+              );
+              if (doneKeys.length < dayData.count) continue; // Not complete
+
+              // Check if any bookmarks exist for this day
+              const hasBookmarks = Object.keys(state.bookmarks).some((k) =>
+                k.startsWith(prefix),
+              );
+              if (hasBookmarks) continue; // Has bookmarks, keep
+
+              // Safe to remove
+              delete pathDays[date];
+              for (const key of doneKeys) {
+                delete newDone[key];
+              }
+              changed = true;
+            }
+            newDays[path] = pathDays;
+          }
+
+          return changed ? { days: newDays, done: newDone } : state;
+        }),
+
       // Helpers
       getCurrentStartDate: () => {
         const state = get();
@@ -423,6 +475,7 @@ export const useAppStore = create<AppStore>()(
           textLanguage: state.textLanguage,
           autoMarkPrevious: state.autoMarkPrevious,
           hideCompleted: state.hideCompleted,
+          daysAhead: state.daysAhead,
           hasSeenAutoMarkPrompt: state.hasSeenAutoMarkPrompt,
           startDates: state.startDates,
           days: cleanedDays,
@@ -445,6 +498,9 @@ export const useAppStore = create<AppStore>()(
         // Migrate: if no hideCompleted, default to 'after24h'
         const hideCompleted = persisted.hideCompleted || "after24h";
 
+        // Migrate: if no daysAhead, default to 7
+        const daysAhead = persisted.daysAhead || 7;
+
         // Migrate: if no bookmarks/summaries, initialize empty
         const bookmarks = persisted.bookmarks || {};
         const summaries = persisted.summaries || {};
@@ -454,6 +510,7 @@ export const useAppStore = create<AppStore>()(
           ...persisted,
           activePaths,
           hideCompleted,
+          daysAhead,
           bookmarks,
           summaries,
         };

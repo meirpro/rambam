@@ -4,8 +4,13 @@
  */
 
 import { runMigrations } from "./migration";
-import { clearStaleData, getDatabaseStats } from "./database";
+import {
+  clearStaleData,
+  cleanupCompletedDays,
+  getDatabaseStats,
+} from "./database";
 import { startBackgroundSync } from "./backgroundSync";
+import { useAppStore } from "@/stores/appStore";
 
 // Track if initialization has been done
 let initialized = false;
@@ -29,6 +34,21 @@ export async function initializeOffline(): Promise<void> {
     const cleared = await clearStaleData(30);
     if (cleared > 0) {
       console.log(`Cleaned up ${cleared} stale entries from IndexedDB`);
+    }
+
+    // 2b. Clean up completed, non-bookmarked old days
+    const { done, bookmarks, activePaths, daysAhead, cleanupOldDays } =
+      useAppStore.getState();
+    const cleanedDays = await cleanupCompletedDays(
+      done,
+      bookmarks,
+      activePaths,
+      daysAhead,
+    );
+    if (cleanedDays > 0) {
+      // Also clean up the Zustand store
+      cleanupOldDays(daysAhead);
+      console.log(`Cleaned up ${cleanedDays} completed days from IndexedDB`);
     }
 
     // 3. Log database stats (for debugging)

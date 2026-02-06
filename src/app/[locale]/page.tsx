@@ -2,15 +2,12 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { useAppStore } from "@/stores/appStore";
+import { useAppStore, isDayComplete } from "@/stores/appStore";
 import { useLocationStore } from "@/stores/locationStore";
 import { useJewishDate } from "@/hooks/useJewishDate";
 import { Header } from "@/components/layout/Header";
 import { StatsBar } from "@/components/layout/StatsBar";
 import { DayGroup } from "@/components/halakha/DayGroup";
-import { SettingsPanel } from "@/components/settings/SettingsPanel";
-import { LocationSetupDialog } from "@/components/location/LocationSetupDialog";
-import { Calendar } from "@/components/calendar";
 import {
   InstallPrompt,
   useInstallPrompt,
@@ -20,7 +17,31 @@ import { ScrollToIncompleteFAB } from "@/components/ui/ScrollToIncompleteFAB";
 import dynamic from "next/dynamic";
 import { fetchCalendar, fetchHalakhot } from "@/services/sefaria";
 import { useTutorial } from "@/hooks/useTutorial";
-import { SummariesList } from "@/components/summaries";
+import { useShallow } from "zustand/react/shallow";
+
+// Dynamic imports for modal components (only loaded when opened)
+const SettingsPanel = dynamic(
+  () =>
+    import("@/components/settings/SettingsPanel").then(
+      (mod) => mod.SettingsPanel,
+    ),
+  { ssr: false },
+);
+const Calendar = dynamic(
+  () => import("@/components/calendar").then((mod) => mod.Calendar),
+  { ssr: false },
+);
+const SummariesList = dynamic(
+  () => import("@/components/summaries").then((mod) => mod.SummariesList),
+  { ssr: false },
+);
+const LocationSetupDialog = dynamic(
+  () =>
+    import("@/components/location/LocationSetupDialog").then(
+      (mod) => mod.LocationSetupDialog,
+    ),
+  { ssr: false },
+);
 
 // Dynamic import to avoid SSR hydration issues
 const Tutorial = dynamic(
@@ -29,7 +50,6 @@ const Tutorial = dynamic(
 );
 import { fetchHebrewDate } from "@/services/hebcal";
 import { dateRange } from "@/lib/dates";
-import { isDayComplete } from "@/stores/appStore";
 import type { DayData, StudyPath } from "@/types";
 
 export default function HomePage() {
@@ -42,22 +62,53 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [viewingDate, setViewingDate] = useState<string | null>(null);
 
-  // App store
-  const studyPath = useAppStore((state) => state.studyPath);
-  const activePaths = useAppStore((state) => state.activePaths);
-  const textLanguage = useAppStore((state) => state.textLanguage);
-  const autoMarkPrevious = useAppStore((state) => state.autoMarkPrevious);
-  const hideCompleted = useAppStore((state) => state.hideCompleted);
-  const startDates = useAppStore((state) => state.startDates);
-  const days = useAppStore((state) => state.days);
-  const done = useAppStore((state) => state.done);
-  const hasMigratedLegacy = useAppStore((state) => state.hasMigratedLegacy);
-  const setDaysData = useAppStore((state) => state.setDaysData);
-  const setDayData = useAppStore((state) => state.setDayData);
-  const setMigrated = useAppStore((state) => state.setMigrated);
-  const setStartDate = useAppStore((state) => state.setStartDate);
-  const markComplete = useAppStore((state) => state.markComplete);
-  const summaries = useAppStore((state) => state.summaries);
+  // Batched settings selectors (useShallow for shallow comparison)
+  const {
+    studyPath,
+    activePaths,
+    textLanguage,
+    autoMarkPrevious,
+    hideCompleted,
+    startDates,
+    hasMigratedLegacy,
+  } = useAppStore(
+    useShallow((s) => ({
+      studyPath: s.studyPath,
+      activePaths: s.activePaths,
+      textLanguage: s.textLanguage,
+      autoMarkPrevious: s.autoMarkPrevious,
+      hideCompleted: s.hideCompleted,
+      startDates: s.startDates,
+      hasMigratedLegacy: s.hasMigratedLegacy,
+    })),
+  );
+
+  // Batched data selectors
+  const { days, done, summaries } = useAppStore(
+    useShallow((s) => ({
+      days: s.days,
+      done: s.done,
+      summaries: s.summaries,
+    })),
+  );
+
+  // Actions: extract via getState() since they're stable refs used in effects/handlers
+  const {
+    setDaysData,
+    setDayData,
+    setMigrated,
+    setStartDate,
+    markComplete: markCompleteFn,
+  } = useMemo(
+    () => ({
+      setDaysData: useAppStore.getState().setDaysData,
+      setDayData: useAppStore.getState().setDayData,
+      setMigrated: useAppStore.getState().setMigrated,
+      setStartDate: useAppStore.getState().setStartDate,
+      markComplete: useAppStore.getState().markComplete,
+    }),
+    [],
+  );
 
   // Location store
   const hasCompletedSetup = useLocationStore(
@@ -79,6 +130,17 @@ export default function HomePage() {
   const { isActive: isTutorialActive, currentStage } = useTutorial();
   const isJumpButtonStage = currentStage?.id === "jump-button";
   const isSettingsStage = currentStage?.id === "settings";
+
+  // Background preload modal chunks after initial render
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      import("@/components/settings/SettingsPanel");
+      import("@/components/calendar");
+      import("@/components/summaries");
+      import("@/components/location/LocationSetupDialog");
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Get earliest start date across all active paths
   const startDate = useMemo(() => {
@@ -162,7 +224,7 @@ export default function HomePage() {
             if (parts.length === 2) {
               const [date, indexStr] = parts;
               const index = parseInt(indexStr);
-              markComplete(legacyPath, date, index);
+              markCompleteFn(legacyPath, date, index);
             }
           });
         } catch (e) {
@@ -189,7 +251,13 @@ export default function HomePage() {
     }
 
     setMigrated();
-  }, [hasMigratedLegacy, setMigrated, setStartDate, setDaysData, markComplete]);
+  }, [
+    hasMigratedLegacy,
+    setMigrated,
+    setStartDate,
+    setDaysData,
+    markCompleteFn,
+  ]);
 
   // Wait for Zustand stores to hydrate from localStorage before checking setup state
   useEffect(() => {
@@ -228,66 +296,68 @@ export default function HomePage() {
       try {
         const allDates = dateRange(startDate, today);
 
-        // Load data for each active path
-        for (const path of activePaths) {
-          const pathData = days[path];
-          const pathStartDate = startDates[path];
-          const missingDates = allDates.filter(
-            (date) => date >= pathStartDate && !pathData[date],
-          );
+        // Load all paths in parallel instead of sequentially
+        await Promise.allSettled(
+          activePaths.map(async (path) => {
+            const pathData = days[path];
+            const pathStartDate = startDates[path];
+            const missingDates = allDates.filter(
+              (date) => date >= pathStartDate && !pathData[date],
+            );
 
-          if (missingDates.length === 0) continue;
+            if (missingDates.length === 0) return;
 
-          // Fetch all missing dates in parallel for this path
-          const results = await Promise.allSettled(
-            missingDates.map(async (date) => {
-              const calData = await fetchCalendar(date, path);
-              const { halakhot, chapterBreaks } = await fetchHalakhot(
-                calData.ref,
-              );
+            // Fetch all missing dates in parallel for this path
+            const results = await Promise.allSettled(
+              missingDates.map(async (date) => {
+                const calData = await fetchCalendar(date, path);
+                const { halakhot, chapterBreaks } = await fetchHalakhot(
+                  calData.ref,
+                );
 
-              // Use cached Hebrew dates if available, otherwise fetch
-              let heDate = calData.heDate;
-              let enDate = calData.enDate;
-              if (!heDate || !enDate) {
-                const dateResult = await fetchHebrewDate(date);
-                heDate = dateResult?.he;
-                enDate = dateResult?.en;
+                // Use cached Hebrew dates if available, otherwise fetch
+                let heDate = calData.heDate;
+                let enDate = calData.enDate;
+                if (!heDate || !enDate) {
+                  const dateResult = await fetchHebrewDate(date);
+                  heDate = dateResult?.he;
+                  enDate = dateResult?.en;
+                }
+
+                return {
+                  date,
+                  data: {
+                    he: calData.he,
+                    en: calData.en,
+                    ref: calData.ref,
+                    count: halakhot.length,
+                    heDate,
+                    enDate,
+                    texts: halakhot,
+                    chapterBreaks,
+                  } as DayData,
+                };
+              }),
+            );
+
+            // Process results
+            const newDays: Record<string, DayData> = {};
+            results.forEach((result, index) => {
+              if (result.status === "fulfilled") {
+                newDays[result.value.date] = result.value.data;
+              } else {
+                console.error(
+                  `Failed to load ${path}/${missingDates[index]}:`,
+                  result.reason,
+                );
               }
+            });
 
-              return {
-                date,
-                data: {
-                  he: calData.he,
-                  en: calData.en,
-                  ref: calData.ref,
-                  count: halakhot.length,
-                  heDate,
-                  enDate,
-                  texts: halakhot,
-                  chapterBreaks,
-                } as DayData,
-              };
-            }),
-          );
-
-          // Process results
-          const newDays: Record<string, DayData> = {};
-          results.forEach((result, index) => {
-            if (result.status === "fulfilled") {
-              newDays[result.value.date] = result.value.data;
-            } else {
-              console.error(
-                `Failed to load ${path}/${missingDates[index]}:`,
-                result.reason,
-              );
+            if (Object.keys(newDays).length > 0) {
+              setDaysData(path, newDays);
             }
-          });
-
-          if (Object.keys(newDays).length > 0) {
-            setDaysData(path, newDays);
-          }
-        }
+          }),
+        );
       } catch (error) {
         console.error("Failed to load days:", error);
       } finally {
@@ -442,6 +512,9 @@ export default function HomePage() {
   const handleClearFilter = useCallback(() => {
     setViewingDate(null);
   }, []);
+
+  // Count summaries without subscribing to entire summaries object changes
+  const summaryCount = Object.keys(summaries).length;
 
   return (
     <div className="container">
@@ -627,7 +700,7 @@ export default function HomePage() {
         )}
 
         {/* Journal button - shows when user has saved summaries */}
-        {!isTutorialActive && Object.keys(summaries).length > 0 && (
+        {!isTutorialActive && summaryCount > 0 && (
           <button
             onClick={() => setShowSummaries(true)}
             className="w-full mt-6 px-4 py-3 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl hover:from-indigo-100 hover:to-purple-100 transition-colors flex items-center justify-center gap-2"
@@ -639,7 +712,7 @@ export default function HomePage() {
             </span>
             <span className="text-xs text-indigo-400">
               {t("summary.entries", {
-                count: Object.keys(summaries).length,
+                count: summaryCount,
               })}
             </span>
           </button>
