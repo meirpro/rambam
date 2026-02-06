@@ -20,6 +20,7 @@ import { ScrollToIncompleteFAB } from "@/components/ui/ScrollToIncompleteFAB";
 import dynamic from "next/dynamic";
 import { fetchCalendar, fetchHalakhot } from "@/services/sefaria";
 import { useTutorial } from "@/hooks/useTutorial";
+import { SummariesList } from "@/components/summaries";
 
 // Dynamic import to avoid SSR hydration issues
 const Tutorial = dynamic(
@@ -37,6 +38,7 @@ export default function HomePage() {
   const isHebrew = locale === "he";
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [showSummaries, setShowSummaries] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [viewingDate, setViewingDate] = useState<string | null>(null);
 
@@ -55,6 +57,7 @@ export default function HomePage() {
   const setMigrated = useAppStore((state) => state.setMigrated);
   const setStartDate = useAppStore((state) => state.setStartDate);
   const markComplete = useAppStore((state) => state.markComplete);
+  const summaries = useAppStore((state) => state.summaries);
 
   // Location store
   const hasCompletedSetup = useLocationStore(
@@ -586,7 +589,31 @@ export default function HomePage() {
               showPathBadge={(activePaths?.length ?? 0) > 1}
             />
           ))}
+
+        {/* Journal button - shows when user has saved summaries */}
+        {!isTutorialActive && Object.keys(summaries).length > 0 && (
+          <button
+            onClick={() => setShowSummaries(true)}
+            className="w-full mt-6 px-4 py-3 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl hover:from-indigo-100 hover:to-purple-100 transition-colors flex items-center justify-center gap-2"
+            dir={isHebrew ? "rtl" : "ltr"}
+          >
+            <span className="text-xl">💭</span>
+            <span className="font-medium text-indigo-700">
+              {t("summary.viewAll")}
+            </span>
+            <span className="text-xs text-indigo-400">
+              {t("summary.entries", {
+                count: Object.keys(summaries).length,
+              })}
+            </span>
+          </button>
+        )}
       </main>
+
+      <SummariesList
+        isOpen={showSummaries}
+        onClose={() => setShowSummaries(false)}
+      />
 
       <SettingsPanel
         isOpen={settingsOpen}

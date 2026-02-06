@@ -526,3 +526,10 @@ export function getBookmarksArray(bookmarks: BookmarksMap): Bookmark[] {
 export function countBookmarks(bookmarks: BookmarksMap): number {
   return Object.keys(bookmarks).length;
 }
+
+/**
+ * Helper function to get all summaries as array, sorted by date descending (newest first)
+ */
+export function getSummariesArray(summaries: SummariesMap): DaySummary[] {
+  return Object.values(summaries).sort((a, b) => b.date.localeCompare(a.date));
+}

@@ -227,7 +227,12 @@
     "placeholder": "כתוב מה למדת היום...",
     "save": "שמור",
     "share": "שתף",
-    "empty": "הרהר במה שלמדת"
+    "empty": "הרהר במה שלמדת",
+    "viewAll": "היומן שלי",
+    "entries": "{count} רשומות",
+    "noSummaries": "אין רשומות ביומן",
+    "noSummariesHint": "כתוב מה למדת בתחתית כל יום",
+    "delete": "מחק רשומה"
   },
   "share": {
     "title": "שתף התקדמות",

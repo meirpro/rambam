@@ -227,7 +227,12 @@
     "placeholder": "Write what you learned today...",
     "save": "Save",
     "share": "Share",
-    "empty": "Reflect on what you learned"
+    "empty": "Reflect on what you learned",
+    "viewAll": "My Journal",
+    "entries": "{count} entries",
+    "noSummaries": "No journal entries yet",
+    "noSummariesHint": "Write what you learned at the bottom of any day",
+    "delete": "Delete entry"
   },
   "share": {
     "title": "Share Progress",
