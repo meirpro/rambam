@@ -385,7 +385,7 @@ export function HalakhaCard({
         {/* Bookmark indicator - positioned on right corner */}
         {isBookmarked && (
           <div
-            className="absolute top-2 right-2 sm:-top-2 sm:-right-2
+            className="absolute -top-2 right-2 sm:-right-2
                        w-6 h-6 text-amber-500 bg-white border border-amber-200
                        flex items-center justify-center rounded-full shadow-sm z-[1]"
             aria-label="Bookmarked"

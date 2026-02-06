@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { CalendarGrid } from "./CalendarGrid";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
@@ -98,7 +98,6 @@ export function InfiniteCalendar({
   const t = useTranslations("calendar");
   const isHebrew = locale === "he";
 
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [currentViewDate, setCurrentViewDate] = useState(selectedDate || today);
 
   // Get store data for finding incomplete days
@@ -124,6 +123,7 @@ export function InfiniteCalendar({
     scrollToDate,
     canLoadPrevious,
     canLoadNext,
+    containerRef,
   } = useInfiniteScroll({
     initialDate: selectedDate || today,
     minDate: startDate,
@@ -225,7 +225,7 @@ export function InfiniteCalendar({
 
   // Handle scroll events for infinite loading and FAB visibility
   const handleScroll = useCallback(() => {
-    const container = scrollContainerRef.current;
+    const container = containerRef.current;
     if (!container) return;
 
     // Load more months when near edges
@@ -288,20 +288,21 @@ export function InfiniteCalendar({
     loadPreviousMonths,
     loadNextMonths,
     months,
+    containerRef,
   ]);
 
   // Set up scroll listener
   useEffect(() => {
-    const container = scrollContainerRef.current;
+    const container = containerRef.current;
     if (!container || !isOpen) return;
 
     container.addEventListener("scroll", handleScroll);
     return () => container.removeEventListener("scroll", handleScroll);
-  }, [isOpen, handleScroll]);
+  }, [isOpen, handleScroll, containerRef]);
 
   // Scroll to the selected date when opening
   useEffect(() => {
-    if (isOpen && scrollContainerRef.current) {
+    if (isOpen && containerRef.current) {
       // Find and scroll to the month containing the selected date
       const targetDate = selectedDate || today;
       const monthIndex = months.findIndex((month) =>
@@ -310,14 +311,14 @@ export function InfiniteCalendar({
 
       if (monthIndex !== -1) {
         requestAnimationFrame(() => {
-          const monthElement = scrollContainerRef.current?.querySelector(
+          const monthElement = containerRef.current?.querySelector(
             `[data-month-index="${monthIndex}"]`,
           );
           monthElement?.scrollIntoView({ behavior: "auto", block: "start" });
         });
       }
     }
-  }, [isOpen, months, selectedDate, today]);
+  }, [isOpen, months, selectedDate, today, containerRef]);
 
   // Handle backdrop click
   const handleBackdropClick = useCallback(
@@ -387,7 +388,7 @@ export function InfiniteCalendar({
 
           {/* Scrollable calendar container */}
           <div
-            ref={scrollContainerRef}
+            ref={containerRef}
             className="flex-1 overflow-y-auto overscroll-contain"
           >
             {/* Loading indicator at top */}
@@ -451,7 +452,6 @@ export function InfiniteCalendar({
                     d="M5 15l7-7 7 7"
                   />
                 </svg>
-                <span className="hidden sm:inline">{t("prevIncomplete")}</span>
               </button>
 
               {/* Divider */}
@@ -496,7 +496,6 @@ export function InfiniteCalendar({
                   }`}
                 aria-label={t("nextIncomplete")}
               >
-                <span className="hidden sm:inline">{t("nextIncomplete")}</span>
                 <svg
                   className="w-4 h-4"
                   fill="none"

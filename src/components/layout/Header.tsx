@@ -158,11 +158,12 @@ export function Header({
           className="relative w-10 h-10 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 active:bg-white/40 transition-colors"
           aria-label={tBookmarks("title")}
         >
-          <BookmarkIcon size={20} filled={bookmarkCount > 0} />
-          {bookmarkCount > 0 && (
-            <span className="absolute -top-1 -right-1 bg-amber-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+          {bookmarkCount > 0 ? (
+            <span className="text-white text-sm font-bold">
               {bookmarkCount > 99 ? "99+" : bookmarkCount}
             </span>
+          ) : (
+            <BookmarkIcon size={20} />
           )}
         </button>
 

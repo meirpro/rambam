@@ -52,7 +52,7 @@ export function CalendarDay({
 
   // Base styles
   let containerClasses =
-    "relative w-10 h-10 flex flex-col items-center justify-center rounded-lg text-sm font-medium transition-colors";
+    "relative w-10 h-11 flex flex-col items-center justify-center rounded-lg text-sm font-medium transition-colors";
 
   // State-based styling - WCAG AA contrast compliant
   if (isDisabled) {
@@ -200,5 +200,5 @@ export function CalendarDay({
  * Empty day cell for padding at start/end of month
  */
 export function EmptyDay() {
-  return <div className="w-10 h-10" />;
+  return <div className="w-10 h-11" />;
 }

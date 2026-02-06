@@ -15,11 +15,17 @@ interface ScrollToIncompleteFABProps {
   sortedDates: string[];
 }
 
+type TargetPosition = "nearby" | "above" | "below";
+
 /**
- * Check if the target card is within one viewport height of the current scroll position.
- * Returns true if the card is "nearby" (visible or within 1vh scroll distance).
+ * Determine the target card's position relative to the viewport.
+ * "nearby" = visible or within 1vh, "above" = need to scroll up, "below" = need to scroll down.
  */
-function isTargetNearby(path: StudyPath, date: string, index: number): boolean {
+function getTargetPosition(
+  path: StudyPath,
+  date: string,
+  index: number,
+): TargetPosition {
   const dayGroupKey = `${path}:${date}`;
   const cardSelector = `[data-day-group="${dayGroupKey}"] [data-index="${index}"]`;
   let el = document.querySelector(cardSelector);
@@ -29,14 +35,16 @@ function isTargetNearby(path: StudyPath, date: string, index: number): boolean {
     el = document.getElementById(cardId);
   }
 
-  // If the element isn't in the DOM (collapsed group), it's far away
-  if (!el) return false;
+  // If the element isn't in the DOM (collapsed group), assume below (natural reading order)
+  if (!el) return "below";
 
   const rect = el.getBoundingClientRect();
   const vh = window.innerHeight;
 
   // Card is "nearby" if its top is between -1vh and +2vh from the viewport
-  return rect.top > -vh && rect.top < vh * 2;
+  if (rect.top > -vh && rect.top < vh * 2) return "nearby";
+
+  return rect.top < 0 ? "above" : "below";
 }
 
 /** Subscribe to scroll events — used by useSyncExternalStore */
@@ -64,14 +72,14 @@ export function ScrollToIncompleteFAB({
   const date = firstIncomplete.date;
   const index = firstIncomplete.index;
 
-  // Subscribe to scroll position to determine if target card is nearby
-  const isNearby = useSyncExternalStore(
+  // Subscribe to scroll position to determine target card's position
+  const targetPosition = useSyncExternalStore(
     subscribeScroll,
     () =>
       path && date && index !== null
-        ? isTargetNearby(path, date, index)
-        : false,
-    () => false,
+        ? getTargetPosition(path, date, index)
+        : ("below" as TargetPosition),
+    () => "below" as TargetPosition,
   );
 
   const handleClick = useCallback(() => {
@@ -127,9 +135,11 @@ export function ScrollToIncompleteFAB({
   }, [firstIncomplete]);
 
   // Don't show FAB if there's nothing incomplete or target is nearby
-  if (!firstIncomplete.date || isNearby) {
+  if (!firstIncomplete.date || targetPosition === "nearby") {
     return null;
   }
+
+  const isAbove = targetPosition === "above";
 
   return (
     <button
@@ -140,7 +150,7 @@ export function ScrollToIncompleteFAB({
       aria-label={t("jumpToNext")}
     >
       <svg
-        className="w-6 h-6"
+        className={`w-6 h-6 transition-transform ${isAbove ? "rotate-180" : ""}`}
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
