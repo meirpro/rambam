@@ -53,16 +53,8 @@ export const CHANGELOG: Record<string, ChangelogEntry[]> = {
       en: "Multi-path study - follow multiple study paths simultaneously",
     },
     {
-      he: "לוח שנה עברי - תאריכים בעברית עם גימטריא (א׳, ב׳, י״ז...)",
-      en: "Hebrew calendar - Jewish dates with gematriya (א׳, ב׳, י״ז...)",
-    },
-    {
-      he: "ניווט לפי חודשים עבריים (שבט, אדר, ניסן...)",
-      en: "Navigation by Hebrew months (Shevat, Adar, Nisan...)",
-    },
-    {
-      he: "לוח שנה אינסופי - גלילה רציפה בין חודשים",
-      en: "Infinite scroll calendar - continuous month-by-month navigation",
+      he: "לוח שנה עברי עם גלילה רציפה - תאריכים בגימטריא וניווט חודשי",
+      en: "Jewish calendar with continuous scroll - gematriya dates and month navigation",
     },
     {
       he: "צבע רקע דינמי - משתנה בהתאם למצב (כחול/צהוב/אדום)",
