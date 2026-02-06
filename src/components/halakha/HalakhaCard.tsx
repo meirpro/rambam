@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useSwipeGesture } from "@/hooks/useSwipeGesture";
 import {
@@ -28,7 +28,7 @@ interface HalakhaCardProps {
 // Swipe threshold to trigger action (in pixels)
 const SWIPE_THRESHOLD = 100;
 
-export function HalakhaCard({
+const HalakhaCardInner = React.memo(function HalakhaCard({
   halakha,
   index,
   date,
@@ -40,8 +40,16 @@ export function HalakhaCard({
   dayData,
 }: HalakhaCardProps) {
   const t = useTranslations("swipe");
-  const done = useAppStore((state) => state.done);
-  const bookmarks = useAppStore((state) => state.bookmarks);
+
+  // Narrow selectors: only re-render when THIS card's state changes
+  const isCompleted = useAppStore((s) =>
+    isHalakhaDone(s.done, studyPath, date, index),
+  );
+  const isBookmarked = useAppStore((s) =>
+    isHalakhaBookmarked(s.bookmarks, studyPath, date, index),
+  );
+
+  // Actions are stable refs, don't need selectors
   const markComplete = useAppStore((state) => state.markComplete);
   const markIncomplete = useAppStore((state) => state.markIncomplete);
   const hasSeenAutoMarkPrompt = useAppStore(
@@ -55,21 +63,19 @@ export function HalakhaCard({
   const [showPrompt, setShowPrompt] = useState(false);
   const [showInfoSheet, setShowInfoSheet] = useState(false);
 
-  const isCompleted = isHalakhaDone(done, studyPath, date, index);
-  const isBookmarked = isHalakhaBookmarked(bookmarks, studyPath, date, index);
   const hebrewNum = toHebrewLetter(index + 1);
 
-  // Count how many previous halakhot are incomplete (for "mark all previous" display)
-  const incompletePreviousCount = useMemo(() => {
+  // Narrow selector: count incomplete previous halakhot for this day/path only
+  const incompletePreviousCount = useAppStore((s) => {
     if (index === 0) return 0;
     let count = 0;
     for (let i = 0; i < index; i++) {
-      if (!isHalakhaDone(done, studyPath, date, i)) {
+      if (!isHalakhaDone(s.done, studyPath, date, i)) {
         count++;
       }
     }
     return count;
-  }, [index, done, studyPath, date]);
+  });
 
   // Swipe RIGHT: Mark only this one as read, OR mark as unread if already read
   const handleSwipeRight = useCallback(() => {
@@ -103,8 +109,9 @@ export function HalakhaCard({
       // Not read → mark this + all previous as read
       markComplete(studyPath, date, index);
       if (index > 0) {
+        const currentDone = useAppStore.getState().done;
         for (let i = 0; i < index; i++) {
-          if (!isHalakhaDone(done, studyPath, date, i)) {
+          if (!isHalakhaDone(currentDone, studyPath, date, i)) {
             markComplete(studyPath, date, i);
           }
         }
@@ -118,7 +125,6 @@ export function HalakhaCard({
     studyPath,
     date,
     index,
-    done,
     onMarkComplete,
     onMarkIncomplete,
   ]);
@@ -127,14 +133,15 @@ export function HalakhaCard({
   const markThisAndPrevious = useCallback(() => {
     markComplete(studyPath, date, index);
     if (index > 0) {
+      const currentDone = useAppStore.getState().done;
       for (let i = 0; i < index; i++) {
-        if (!isHalakhaDone(done, studyPath, date, i)) {
+        if (!isHalakhaDone(currentDone, studyPath, date, i)) {
           markComplete(studyPath, date, i);
         }
       }
     }
     onMarkComplete?.(index);
-  }, [markComplete, studyPath, date, index, done, onMarkComplete]);
+  }, [markComplete, studyPath, date, index, onMarkComplete]);
 
   // Helper to mark only this halakha
   const markOnlyThis = useCallback(() => {
@@ -468,4 +475,6 @@ export function HalakhaCard({
       )}
     </div>
   );
-}
+});
+
+export { HalakhaCardInner as HalakhaCard };

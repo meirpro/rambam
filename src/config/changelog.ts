@@ -266,15 +266,15 @@ export const CHANGELOG: Record<string, ChangelogEntry[]> = {
 export const CONTRIBUTORS: Record<string, Contributor> = {
   "7": {
     name: { he: "מאיר", en: "Meir" },
-    avatar: "/contributors/meir.png",
+    avatar: "/contributors/meir.webp",
   },
   "6": {
     name: { he: "מאיר", en: "Meir" },
-    avatar: "/contributors/meir.png",
+    avatar: "/contributors/meir.webp",
   },
   "5": {
     name: { he: "מאיר", en: "Meir" },
-    avatar: "/contributors/meir.png",
+    avatar: "/contributors/meir.webp",
   },
   "4": {
     name: { he: "מאיר", en: "Meir" },

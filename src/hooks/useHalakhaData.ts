@@ -29,7 +29,8 @@ export function useHalakhaData(
   studyPath: StudyPath,
   refs?: string[],
 ): UseHalakhaDataReturn {
-  const days = useAppStore((state) => state.days);
+  // Narrow selector: only subscribe to this specific day's data
+  const dayData = useAppStore((state) => state.days[studyPath]?.[date]);
   const setDayData = useAppStore((state) => state.setDayData);
 
   const [halakhot, setHalakhot] = useState<HalakhaText[]>([]);
@@ -41,7 +42,6 @@ export function useHalakhaData(
     if (!ref && (!refs || refs.length === 0)) return;
 
     // Check if we already have cached texts
-    const dayData = days[studyPath][date];
     if (dayData?.texts && dayData.texts.length > 0) {
       setHalakhot(dayData.texts);
       setChapterBreaks(dayData.chapterBreaks || []);
@@ -78,7 +78,7 @@ export function useHalakhaData(
     } finally {
       setIsLoading(false);
     }
-  }, [ref, refs, date, studyPath, days, setDayData]);
+  }, [ref, refs, date, studyPath, dayData, setDayData]);
 
   useEffect(() => {
     fetchData();

@@ -47,7 +47,8 @@
     "importError": "שגיאה בייבוא הקובץ",
     "tutorial": "הדרכה",
     "restartTutorial": "הפעל מחדש את ההדרכה",
-    "showWhatsNew": "הצג מה חדש"
+    "showWhatsNew": "הצג מה חדש",
+    "daysAheadLabel": "ימים קדימה לאופליין"
   },
   "welcome": {
     "title": "ברוכים הבאים!",

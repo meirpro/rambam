@@ -311,6 +311,66 @@ export async function clearStaleData(maxAgeDays = 30): Promise<number> {
 }
 
 /**
+ * Clean up completed, non-bookmarked days from IndexedDB
+ * Removes calendar and text entries for old days that are fully completed
+ * and have no bookmarks.
+ */
+export async function cleanupCompletedDays(
+  done: Record<string, string>,
+  bookmarks: Record<string, unknown>,
+  activePaths: StudyPath[],
+  daysToKeep: number,
+): Promise<number> {
+  const db = await openDatabase();
+  const threshold = new Date();
+  threshold.setDate(threshold.getDate() - daysToKeep);
+  const thresholdStr = threshold.toISOString().slice(0, 10);
+  let cleaned = 0;
+
+  const calendarTx = db.transaction([CALENDAR_STORE, TEXTS_STORE], "readwrite");
+  const calendarStore = calendarTx.objectStore(CALENDAR_STORE);
+  const textsStore = calendarTx.objectStore(TEXTS_STORE);
+
+  let cursor = await calendarStore.openCursor();
+  while (cursor) {
+    const entry = cursor.value as StoredCalendar;
+
+    // Only process active paths and old dates
+    if (activePaths.includes(entry.path) && entry.date < thresholdStr) {
+      const prefix = `${entry.path}:${entry.date}:`;
+
+      // Check if fully completed
+      const doneKeys = Object.keys(done).filter((k) => k.startsWith(prefix));
+      const isComplete = doneKeys.length >= entry.count;
+
+      // Check for bookmarks
+      const hasBookmarks = Object.keys(bookmarks).some((k) =>
+        k.startsWith(prefix),
+      );
+
+      if (isComplete && !hasBookmarks) {
+        // Delete calendar entry
+        await cursor.delete();
+
+        // Delete associated text
+        try {
+          await textsStore.delete(entry.ref);
+        } catch {
+          // Text may not exist or be shared, ignore
+        }
+
+        cleaned++;
+      }
+    }
+
+    cursor = await cursor.continue();
+  }
+
+  await calendarTx.done;
+  return cleaned;
+}
+
+/**
  * Get database statistics
  */
 export async function getDatabaseStats(): Promise<{

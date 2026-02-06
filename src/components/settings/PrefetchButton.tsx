@@ -17,6 +17,7 @@ type PrefetchState = "idle" | "prefetching" | "success" | "error";
 export function PrefetchButton() {
   const t = useTranslations("offline");
   const studyPath = useAppStore((state) => state.studyPath);
+  const daysAhead = useAppStore((state) => state.daysAhead);
   const sunset = useLocationStore((state) => state.sunset);
   const [state, setState] = useState<PrefetchState>("idle");
   const [progress, setProgress] = useState<PrefetchProgress | null>(null);
@@ -34,9 +35,14 @@ export function PrefetchButton() {
 
     try {
       const today = getJewishDate(sunset);
-      const result = await prefetchWeekAhead(today, studyPath, (p) => {
-        setProgress(p);
-      });
+      const result = await prefetchWeekAhead(
+        today,
+        studyPath,
+        (p) => {
+          setProgress(p);
+        },
+        daysAhead,
+      );
 
       if (result.success) {
         setState("success");
@@ -60,7 +66,7 @@ export function PrefetchButton() {
       setState("error");
       setErrorMessage(error instanceof Error ? error.message : t("tryAgain"));
     }
-  }, [studyPath, sunset, t]);
+  }, [studyPath, daysAhead, sunset, t]);
 
   const isDisabled = state === "prefetching";
   const progressPercent = progress
