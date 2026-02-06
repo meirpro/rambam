@@ -20,6 +20,10 @@
 - `src/types/` - TypeScript types
 - `public/` - Static assets (logo, icons, manifest)
 
+## Shell Commands
+
+- Don't use `git -C` — the working directory is already the project root. Just use `git` directly.
+
 ## Key Features
 
 - Multi-path study tracking (Rambam 3 chapters, Rambam 1 chapter, Sefer HaMitzvot)
