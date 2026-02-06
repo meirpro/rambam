@@ -49,6 +49,10 @@ export const CHANGELOG: Record<string, ChangelogEntry[]> = {
   ],
   "6": [
     {
+      he: "לימוד מרובה מסלולים - עקוב אחרי כמה מסלולים במקביל",
+      en: "Multi-path study - follow multiple study paths simultaneously",
+    },
+    {
       he: "לוח שנה עברי - תאריכים בעברית עם גימטריא (א׳, ב׳, י״ז...)",
       en: "Hebrew calendar - Jewish dates with gematriya (א׳, ב׳, י״ז...)",
     },
@@ -57,8 +61,20 @@ export const CHANGELOG: Record<string, ChangelogEntry[]> = {
       en: "Navigation by Hebrew months (Shevat, Adar, Nisan...)",
     },
     {
+      he: "לוח שנה אינסופי - גלילה רציפה בין חודשים",
+      en: "Infinite scroll calendar - continuous month-by-month navigation",
+    },
+    {
       he: "צבע רקע דינמי - משתנה בהתאם למצב (כחול/צהוב/אדום)",
       en: "Dynamic background color - changes based on status (blue/amber/red)",
+    },
+    {
+      he: "כפתור קפיצה - כפתור צף לגלילה מהירה להלכה הבאה שלא הושלמה",
+      en: "Jump button - floating button to quickly scroll to next unread halakha",
+    },
+    {
+      he: "סרגל סטטיסטיקות משופר - ימי לימוד, התקדמות היום, והלכות להשלים",
+      en: "Enhanced stats bar - study days, today's progress, and backlog tracking",
     },
   ],
   "5": [
@@ -73,6 +89,22 @@ export const CHANGELOG: Record<string, ChangelogEntry[]> = {
     {
       he: "ייבוא מקובץ גיבוי - שחזר את הנתונים במכשיר חדש",
       en: "Import from backup file - restore data on new device",
+    },
+    {
+      he: "מדריך אינטראקטיבי - הדרכה שלב-אחר-שלב עם כרטיסי דמו",
+      en: "Interactive tutorial - step-by-step guide with demo cards",
+    },
+    {
+      he: "קישורים חיצוניים - צפה בהלכות בספריא ו-Chabad.org",
+      en: "External links - view halakhot on Sefaria and Chabad.org",
+    },
+    {
+      he: "לחיצה ארוכה על כרטיס לגישה מהירה לקישורים חיצוניים",
+      en: "Long-press any card for quick access to external links",
+    },
+    {
+      he: "הסתרת פריטים שהושלמו - מיד, אחרי שעה, או אחרי 24 שעות",
+      en: "Hide completed items - immediately, after 1 hour, or after 24 hours",
     },
   ],
   "4": [
@@ -107,14 +139,6 @@ export const CHANGELOG: Record<string, ChangelogEntry[]> = {
     {
       he: "סינון לפי תאריך - לחיצה על תאריך בלוח מציגה רק אותו",
       en: "Date filtering - clicking a calendar date shows only that day",
-    },
-    {
-      he: "חיווי ויזואלי בהחלקה - משוב מיידי לפעולות סימון",
-      en: "Swipe visual feedback - immediate response to marking actions",
-    },
-    {
-      he: "שאלת סימון אוטומטי - האם לסמן גם הלכות קודמות",
-      en: "Auto-mark prompt - option to mark previous halakhot too",
     },
   ],
   "3": [
@@ -155,6 +179,18 @@ export const CHANGELOG: Record<string, ChangelogEntry[]> = {
     {
       he: "גלילה אוטומטית להלכה הבאה לאחר סימון",
       en: "Auto-scroll to next halakha after marking",
+    },
+    {
+      he: "חיווי ויזואלי בהחלקה - משוב מיידי לפעולות סימון",
+      en: "Swipe visual feedback - immediate response to marking actions",
+    },
+    {
+      he: "שאלת סימון אוטומטי - האם לסמן גם הלכות קודמות",
+      en: "Auto-mark prompt - option to mark previous halakhot too",
+    },
+    {
+      he: "עדכון ממשק אוטומטי בשקיעה - היום מתחלף בלי רענון",
+      en: "Auto-update UI at sunset - day changes without refresh",
     },
   ],
   "1": [

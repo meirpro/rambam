@@ -416,7 +416,7 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
                       <details
                         key={version}
                         className="mb-2 border rounded-lg overflow-hidden"
-                        open={version === "5"}
+                        open={version === "7"}
                       >
                         <summary className="px-3 py-2 bg-gray-50 font-semibold text-sm cursor-pointer hover:bg-gray-100 flex items-center gap-2">
                           <span className="inline-block transition-transform">
