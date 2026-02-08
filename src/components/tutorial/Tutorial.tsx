@@ -473,8 +473,11 @@ export function Tutorial({ onComplete }: TutorialProps) {
           <div className="w-full max-w-md space-y-3">
             {/* Normal — theme primary accent bar */}
             <div
-              className="bg-[var(--color-surface)] border-b-[3px] rounded-xl px-4 py-3 flex items-center gap-3 shadow-md"
-              style={{ borderBottomColor: "var(--color-status-normal)" }}
+              className="bg-[var(--color-surface)] border-b-[3px] border-t-[3px] px-4 py-3 flex items-center gap-3 shadow-md"
+              style={{
+                borderBottomColor: "var(--color-status-normal)",
+                borderTopColor: "var(--color-status-normal)",
+              }}
             >
               <div
                 className="w-3 h-3 rounded-full"
@@ -484,10 +487,13 @@ export function Tutorial({ onComplete }: TutorialProps) {
                 {t("headerColors.blue")}
               </span>
             </div>
-            {/* Offline — amber accent bar */}
+            {/* Offline — accent bar */}
             <div
-              className="bg-[var(--color-surface)] border-b-[3px] rounded-xl px-4 py-3 flex items-center gap-3 shadow-md"
-              style={{ borderBottomColor: "var(--color-status-offline)" }}
+              className="bg-[var(--color-surface)] border-b-[3px] border-t-[3px] px-4 py-3 flex items-center gap-3 shadow-md"
+              style={{
+                borderBottomColor: "var(--color-status-offline)",
+                borderTopColor: "var(--color-status-offline)",
+              }}
             >
               <svg
                 className="w-5 h-5"
@@ -512,7 +518,7 @@ export function Tutorial({ onComplete }: TutorialProps) {
             </div>
             {/* Other date — red accent bar (top + bottom) */}
             <div
-              className="bg-[var(--color-surface)] border-b-[3px] border-t-[3px] rounded-xl px-4 py-3 flex items-center gap-3 shadow-md"
+              className="bg-[var(--color-surface)] border-b-[3px] border-t-[3px] px-4 py-3 flex items-center gap-3 shadow-md"
               style={{
                 borderBottomColor: "var(--color-status-other-date)",
                 borderTopColor: "var(--color-status-other-date)",

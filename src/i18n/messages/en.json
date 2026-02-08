@@ -371,11 +371,11 @@
     },
     "headerColors": {
       "title": "Header Colors",
-      "instruction": "The header color indicates your status: Blue = normal, Amber = offline mode, Red = viewing a different date.",
+      "instruction": "The accent bar under the header changes color to indicate your status. The color adapts to your chosen theme.",
       "hint": "Colors help you know your current state at a glance",
-      "blue": "Blue = Normal",
-      "amber": "Amber = Offline",
-      "red": "Red = Other date"
+      "blue": "Normal",
+      "amber": "Offline",
+      "red": "Other date"
     },
     "bookmarks": {
       "title": "Bookmarks",
