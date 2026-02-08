@@ -138,7 +138,7 @@
   },
   "autoMarkPrompt": {
     "title": "Mark previous halakhot",
-    "message": "There are {count} unread halakhot before this one. Mark them too?",
+    "message": "{count, plural, one {There is {count} unread halakha before this one. Mark it too?} other {There are {count} unread halakhot before this one. Mark them too?}}",
     "always": "Always",
     "justOnce": "Just this time",
     "onlyThis": "Only this one",
@@ -256,7 +256,7 @@
     "share": "Share",
     "empty": "Reflect on what you learned",
     "viewAll": "My Journal",
-    "entries": "{count} entries",
+    "entries": "{count, plural, one {{count} entry} other {{count} entries}}",
     "noSummaries": "No journal entries yet",
     "noSummariesHint": "Write what you learned at the bottom of any day",
     "delete": "Delete entry"

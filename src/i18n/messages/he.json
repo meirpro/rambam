@@ -138,7 +138,7 @@
   },
   "autoMarkPrompt": {
     "title": "סימון הלכות קודמות",
-    "message": "יש {count} הלכות קודמות שעוד לא נקראו. האם לסמן גם אותן?",
+    "message": "{count, plural, one {יש הלכה אחת קודמת שעוד לא נקראה. האם לסמן גם אותה?} other {יש {count} הלכות קודמות שעוד לא נקראו. האם לסמן גם אותן?}}",
     "always": "תמיד",
     "justOnce": "רק הפעם",
     "onlyThis": "רק את זו",
@@ -157,7 +157,7 @@
     "allComplete": "סיימת הכל!",
     "allCompleteHint": "פריטים שהושלמו מוסתרים. ניתן לשנות זאת בהגדרות תחת \"הסתר שהושלמו\".",
     "openSettings": "פתח הגדרות",
-    "hiddenEntries": "{count, plural, one {פריט {count} מוסתר} other {{count} פריטים מוסתרים}}",
+    "hiddenEntries": "{count, plural, one {פריט אחד מוסתר} other {{count} פריטים מוסתרים}}",
     "tapToShow": "לחץ להצגה"
   },
   "dates": {
@@ -256,7 +256,7 @@
     "share": "שתף",
     "empty": "הרהר במה שלמדת",
     "viewAll": "היומן שלי",
-    "entries": "{count} רשומות",
+    "entries": "{count, plural, one {רשומה אחת} other {{count} רשומות}}",
     "noSummaries": "אין רשומות ביומן",
     "noSummariesHint": "כתוב מה למדת בתחתית כל יום",
     "delete": "מחק רשומה"

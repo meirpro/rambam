@@ -698,8 +698,22 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
             <SettingRow
               label={isHebrew ? "שפת הממשק" : "Interface Language"}
               value={isHebrew ? "עברית" : "English"}
-              onClick={handleSwitchLocale}
-            />
+              chevron
+              onClick={() => toggleExpand("locale")}
+            >
+              {expanded === "locale" && (
+                <Toggle
+                  options={[
+                    { value: "he", label: "עברית" },
+                    { value: "en", label: "English" },
+                  ]}
+                  value={locale}
+                  onChange={(val) => {
+                    if (val !== locale) handleSwitchLocale();
+                  }}
+                />
+              )}
+            </SettingRow>
           </SettingsGroup>
 
           {/* ── Device & Data ── */}
