@@ -309,8 +309,8 @@ export function Tutorial({ onComplete }: TutorialProps) {
         </div>
       )}
 
-      {/* Info icon visual mock-up */}
-      {currentStage.id === "info-icon" && (
+      {/* Info icon visual mock-up — shared by info-icon and bookmarks stages */}
+      {(currentStage.id === "info-icon" || currentStage.id === "bookmarks") && (
         <div className="fixed inset-0 z-45 flex items-center justify-center px-4">
           <div className="w-full max-w-md">
             {/* Mock card with info icon highlighted */}
@@ -347,52 +347,53 @@ export function Tutorial({ onComplete }: TutorialProps) {
       )}
 
       {/* Info sheet preview - centered overlay */}
-      {currentStage.id === "info-icon" && showInfoPreview && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
-          <div
-            className="absolute inset-0 bg-black/20"
-            onClick={() => setShowInfoPreview(false)}
-          />
-          <div className="relative w-full max-w-sm bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-              <span className="font-semibold text-gray-800">
-                {t("demo.externalLinks")}
-              </span>
-              <button
-                onClick={() => setShowInfoPreview(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200 text-gray-500"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="p-4 space-y-3">
-              {/* Bookmark toggle demo */}
-              <button
-                onClick={() => setBookmarkDemoActive((v) => !v)}
-                className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  bookmarkDemoActive
-                    ? "bg-amber-100 text-amber-700"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
-              >
-                <svg
-                  className="w-4 h-4"
-                  viewBox="0 0 24 24"
-                  fill={bookmarkDemoActive ? "currentColor" : "none"}
-                  stroke="currentColor"
-                  strokeWidth="2"
+      {(currentStage.id === "info-icon" || currentStage.id === "bookmarks") &&
+        showInfoPreview && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
+            <div
+              className="absolute inset-0 bg-black/20"
+              onClick={() => setShowInfoPreview(false)}
+            />
+            <div className="relative w-full max-w-sm bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+              <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                <span className="font-semibold text-gray-800">
+                  {t("demo.externalLinks")}
+                </span>
+                <button
+                  onClick={() => setShowInfoPreview(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200 text-gray-500"
                 >
-                  <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-                </svg>
-                {bookmarkDemoActive
-                  ? tBookmarks("removeBookmark")
-                  : tBookmarks("addBookmark")}
-              </button>
-              <ExternalLinks isPreview />
+                  ✕
+                </button>
+              </div>
+              <div className="p-4 space-y-3">
+                {/* Bookmark toggle demo */}
+                <button
+                  onClick={() => setBookmarkDemoActive((v) => !v)}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    bookmarkDemoActive
+                      ? "bg-amber-100 text-amber-700"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  <svg
+                    className="w-4 h-4"
+                    viewBox="0 0 24 24"
+                    fill={bookmarkDemoActive ? "currentColor" : "none"}
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                  </svg>
+                  {bookmarkDemoActive
+                    ? tBookmarks("removeBookmark")
+                    : tBookmarks("addBookmark")}
+                </button>
+                <ExternalLinks isPreview />
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Day checkmark visual mock-up */}
       {currentStage.id === "day-checkmark" && (
