@@ -7,6 +7,7 @@ import { useOfflineStatus } from "@/hooks/useOfflineStatus";
 import { useAppStore, countBookmarks } from "@/stores/appStore";
 import { BookmarksList } from "@/components/bookmarks";
 import { BookmarkIcon } from "@/components/ui/icons/BookmarkIcon";
+import type { ContentWidth, HeaderStyle } from "@/types";
 
 interface HeaderProps {
   onSettingsClick: () => void;
@@ -40,6 +41,9 @@ export function Header({
   // Bookmarks count
   const bookmarks = useAppStore((state) => state.bookmarks);
   const bookmarkCount = countBookmarks(bookmarks);
+  const contentWidth = useAppStore((s) => s.contentWidth) as ContentWidth;
+  const headerStyle = useAppStore((s) => s.headerStyle) as HeaderStyle;
+  const isGlass = headerStyle === "glass";
 
   // Update accent bar color based on state
   // Priority: forceDefaultColor > viewing other date (red) > offline (amber) > normal (theme primary)
@@ -73,14 +77,22 @@ export function Header({
 
   return (
     <header
-      className="bg-[var(--color-surface)] border-b-[3px] sticky top-0 z-[101] transition-colors duration-300"
+      className={`${isGlass ? "bg-[var(--color-surface-glass)] backdrop-blur-xl" : "bg-[var(--color-surface)]"} border-b-[3px] sticky top-0 z-[101] transition-colors duration-300`}
       style={{
         borderBottomColor: "var(--header-accent)",
         borderTopWidth: "3px",
         borderTopColor: "var(--header-accent)",
       }}
     >
-      <div className="px-4 py-3 flex items-center justify-between">
+      <div
+        className={`px-4 py-3 flex items-center justify-between mx-auto ${
+          contentWidth === "narrow"
+            ? "max-w-2xl"
+            : contentWidth === "medium"
+              ? "max-w-4xl"
+              : ""
+        }`}
+      >
         <div className="flex items-center gap-3">
           <Image
             src="/logo.png"

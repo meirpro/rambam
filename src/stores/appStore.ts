@@ -36,6 +36,10 @@ interface AppStore extends AppSettings {
   hasMigratedLegacy: boolean;
   // Has user seen the auto-mark prompt (first time marking multiple)
   hasSeenAutoMarkPrompt: boolean;
+  // How many days to keep cached text in IndexedDB (0 = keep forever)
+  textRetentionDays: number;
+  // Days pinned for offline access: "path:date" → true
+  pinnedDays: Record<string, boolean>;
 
   // Settings actions
   setStudyPath: (path: StudyPath) => void;
@@ -52,6 +56,9 @@ interface AppStore extends AppSettings {
   setHeaderStyle: (style: HeaderStyle) => void;
   setCardStyle: (style: CardStyle) => void;
   setContentWidth: (width: ContentWidth) => void;
+  setTextRetentionDays: (days: number) => void;
+  pinDay: (path: StudyPath, date: string) => void;
+  unpinDay: (path: StudyPath, date: string) => void;
 
   // Day data actions
   setDayData: (path: StudyPath, date: string, data: DayData) => void;
@@ -79,6 +86,8 @@ interface AppStore extends AppSettings {
     titleHe: string,
     titleEn: string | undefined,
     ref: string,
+    textHe?: string,
+    textEn?: string,
   ) => void;
   removeBookmark: (path: StudyPath, date: string, index: number) => void;
   updateBookmarkNote: (
@@ -143,6 +152,8 @@ export const useAppStore = create<AppStore>()(
       summaries: {},
       hasMigratedLegacy: false,
       hasSeenAutoMarkPrompt: false,
+      textRetentionDays: 7,
+      pinnedDays: {},
 
       // Settings actions
       setStudyPath: (path) => set({ studyPath: path }),
@@ -200,6 +211,17 @@ export const useAppStore = create<AppStore>()(
       setHeaderStyle: (style) => set({ headerStyle: style }),
       setCardStyle: (style) => set({ cardStyle: style }),
       setContentWidth: (width) => set({ contentWidth: width }),
+      setTextRetentionDays: (days) => set({ textRetentionDays: days }),
+      pinDay: (path, date) =>
+        set((state) => ({
+          pinnedDays: { ...state.pinnedDays, [`${path}:${date}`]: true },
+        })),
+      unpinDay: (path, date) =>
+        set((state) => {
+          const newPinned = { ...state.pinnedDays };
+          delete newPinned[`${path}:${date}`];
+          return { pinnedDays: newPinned };
+        }),
 
       // Day data actions
       setDayData: (path, date, data) =>
@@ -307,7 +329,7 @@ export const useAppStore = create<AppStore>()(
       setMigrated: () => set({ hasMigratedLegacy: true }),
 
       // Bookmark actions
-      addBookmark: (path, date, index, titleHe, titleEn, ref) =>
+      addBookmark: (path, date, index, titleHe, titleEn, ref, textHe, textEn) =>
         set((state) => {
           const key = makeBookmarkKey(path, date, index);
           const now = new Date().toISOString();
@@ -319,6 +341,8 @@ export const useAppStore = create<AppStore>()(
             titleHe,
             titleEn,
             ref,
+            textHe,
+            textEn,
             createdAt: now,
             updatedAt: now,
           };
@@ -395,50 +419,10 @@ export const useAppStore = create<AppStore>()(
           return { summaries: newSummaries };
         }),
 
-      // Cleanup: remove completed, non-bookmarked days older than threshold
-      cleanupOldDays: (daysToKeep) =>
-        set((state) => {
-          const threshold = new Date();
-          threshold.setDate(threshold.getDate() - daysToKeep);
-          const thresholdStr = threshold.toISOString().slice(0, 10);
-
-          const newDays = { ...state.days };
-          const newDone = { ...state.done };
-          let changed = false;
-
-          for (const path of Object.keys(newDays) as StudyPath[]) {
-            const pathDays = { ...newDays[path] };
-            for (const date of Object.keys(pathDays)) {
-              if (date >= thresholdStr) continue; // Not old enough
-
-              const dayData = pathDays[date];
-              if (!dayData) continue;
-
-              // Check if fully completed
-              const prefix = `${path}:${date}:`;
-              const doneKeys = Object.keys(newDone).filter((k) =>
-                k.startsWith(prefix),
-              );
-              if (doneKeys.length < dayData.count) continue; // Not complete
-
-              // Check if any bookmarks exist for this day
-              const hasBookmarks = Object.keys(state.bookmarks).some((k) =>
-                k.startsWith(prefix),
-              );
-              if (hasBookmarks) continue; // Has bookmarks, keep
-
-              // Safe to remove
-              delete pathDays[date];
-              for (const key of doneKeys) {
-                delete newDone[key];
-              }
-              changed = true;
-            }
-            newDays[path] = pathDays;
-          }
-
-          return changed ? { days: newDays, done: newDone } : state;
-        }),
+      // No-op: all user data is preserved (completion records, day metadata).
+      // Only IndexedDB text cache is cleaned — see cleanupCompletedDays() in database.ts.
+      // Deleting days/done entries caused completed days to reappear as uncompleted.
+      cleanupOldDays: () => {},
 
       // Helpers
       getCurrentStartDate: () => {
@@ -492,6 +476,9 @@ export const useAppStore = create<AppStore>()(
           theme: state.theme,
           headerStyle: state.headerStyle,
           cardStyle: state.cardStyle,
+          contentWidth: state.contentWidth,
+          textRetentionDays: state.textRetentionDays,
+          pinnedDays: state.pinnedDays,
           hasSeenAutoMarkPrompt: state.hasSeenAutoMarkPrompt,
           startDates: state.startDates,
           days: cleanedDays,
@@ -535,6 +522,12 @@ export const useAppStore = create<AppStore>()(
         const cardStyle = persisted.cardStyle || "list";
         const contentWidth = persisted.contentWidth || "full";
 
+        // Migrate: if no textRetentionDays, default to 7
+        const textRetentionDays = persisted.textRetentionDays ?? 7;
+
+        // Migrate: if no pinnedDays, initialize empty
+        const pinnedDays = persisted.pinnedDays || {};
+
         return {
           ...currentState,
           ...persisted,
@@ -547,6 +540,8 @@ export const useAppStore = create<AppStore>()(
           headerStyle,
           cardStyle,
           contentWidth,
+          textRetentionDays,
+          pinnedDays,
         };
       },
     },
@@ -616,6 +611,18 @@ export function getBookmarksArray(bookmarks: BookmarksMap): Bookmark[] {
  */
 export function countBookmarks(bookmarks: BookmarksMap): number {
   return Object.keys(bookmarks).length;
+}
+
+/**
+ * Helper function to check if a day has any bookmarks
+ */
+export function hasDayBookmarks(
+  bookmarks: BookmarksMap,
+  path: StudyPath,
+  date: string,
+): boolean {
+  const prefix = `${path}:${date}:`;
+  return Object.keys(bookmarks).some((key) => key.startsWith(prefix));
 }
 
 /**

@@ -17,6 +17,7 @@ import { useTutorial, TutorialAction } from "@/hooks/useTutorial";
 import { TutorialOverlay } from "./TutorialOverlay";
 import { DemoCard } from "./DemoCard";
 import { ExternalLinks } from "@/components/halakha/ExternalLinks";
+import { ProgressCircle } from "@/components/ui/ProgressCircle";
 
 /**
  * Dynamic highlight that positions itself based on an element ID
@@ -414,24 +415,21 @@ export function Tutorial({ onComplete }: TutorialProps) {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  {/* Highlighted checkmark button - clickable */}
-                  {!dayCheckmarkClicked ? (
-                    <button
-                      onClick={() => setDayCheckmarkClicked(true)}
-                      className="w-10 h-10 flex items-center justify-center rounded-md bg-blue-500 text-white text-xl ring-4 ring-yellow-400 ring-opacity-75 animate-pulse shadow-lg hover:bg-blue-600 active:scale-95 transition-all cursor-pointer"
-                    >
-                      ✓
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => setDayCheckmarkClicked(false)}
-                      className="w-10 h-10 flex items-center justify-center rounded-md text-gray-400 hover:bg-black/5 text-2xl cursor-pointer"
-                    >
-                      ↺
-                    </button>
-                  )}
-                </div>
+                {/* Progress circle button — highlighted for tutorial */}
+                <button
+                  onClick={() => setDayCheckmarkClicked(!dayCheckmarkClicked)}
+                  className={`w-10 h-10 flex items-center justify-center rounded-md cursor-pointer transition-all active:scale-95 ${
+                    !dayCheckmarkClicked
+                      ? "ring-4 ring-yellow-400 ring-opacity-75 animate-pulse shadow-lg"
+                      : "hover:bg-black/5"
+                  }`}
+                >
+                  <ProgressCircle
+                    percentage={dayCheckmarkClicked ? 100 : 0}
+                    size={28}
+                    color="#3b82f6"
+                  />
+                </button>
               </div>
               {/* Mock cards preview */}
               <div className="p-4 bg-gray-50 space-y-2">

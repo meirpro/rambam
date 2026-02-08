@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { useAppStore, isDayComplete } from "@/stores/appStore";
+import { useAppStore, isDayComplete, hasDayBookmarks } from "@/stores/appStore";
 import { useLocationStore } from "@/stores/locationStore";
 import { useJewishDate } from "@/hooks/useJewishDate";
 import { Header } from "@/components/layout/Header";
@@ -48,7 +48,6 @@ const Tutorial = dynamic(
   () => import("@/components/tutorial").then((mod) => mod.Tutorial),
   { ssr: false },
 );
-import { fetchHebrewDate } from "@/services/hebcal";
 import { dateRange } from "@/lib/dates";
 import { useTheme } from "@/hooks/useTheme";
 import type { DayData, StudyPath, ContentWidth } from "@/types";
@@ -65,6 +64,11 @@ export default function HomePage() {
   const [showSummaries, setShowSummaries] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [viewingDate, setViewingDate] = useState<string | null>(null);
+  const [showHidden, setShowHidden] = useState(false);
+  const [revealLimit, setRevealLimit] = useState(20);
+  const [hiddenFilter, setHiddenFilter] = useState<
+    "all" | "bookmarked" | "hasNote" | "noNote"
+  >("all");
 
   // Batched settings selectors (useShallow for shallow comparison)
   const {
@@ -88,11 +92,12 @@ export default function HomePage() {
   );
 
   // Batched data selectors
-  const { days, done, summaries } = useAppStore(
+  const { days, done, summaries, bookmarks } = useAppStore(
     useShallow((s) => ({
       days: s.days,
       done: s.done,
       summaries: s.summaries,
+      bookmarks: s.bookmarks,
     })),
   );
 
@@ -288,6 +293,13 @@ export default function HomePage() {
     }
   }, [hasHydrated, hasCompletedSetup]);
 
+  // Reset showHidden when hideCompleted setting changes or when navigating to a specific date
+  useEffect(() => {
+    setShowHidden(false);
+    setRevealLimit(20);
+    setHiddenFilter("all");
+  }, [hideCompleted, viewingDate]);
+
   // Load missing days data for all active paths (only after location is set up)
   useEffect(() => {
     // Don't load data until location is set up
@@ -321,24 +333,16 @@ export default function HomePage() {
                   calData.ref,
                 );
 
-                // Use cached Hebrew dates if available, otherwise fetch
-                let heDate = calData.heDate;
-                let enDate = calData.enDate;
-                if (!heDate || !enDate) {
-                  const dateResult = await fetchHebrewDate(date);
-                  heDate = dateResult?.he;
-                  enDate = dateResult?.en;
-                }
-
                 return {
                   date,
                   data: {
                     he: calData.he,
                     en: calData.en,
                     ref: calData.ref,
+                    refs: "refs" in calData ? calData.refs : undefined,
                     count: halakhot.length,
-                    heDate,
-                    enDate,
+                    heDate: calData.heDate,
+                    enDate: calData.enDate,
                     texts: halakhot,
                     chapterBreaks,
                   } as DayData,
@@ -395,34 +399,90 @@ export default function HomePage() {
     return Array.from(allDates).sort((a, b) => b.localeCompare(a));
   }, [activePaths, days, startDates, today]);
 
-  // Build display data: for each date, show each active path that has data for that date
-  // Also track hidden entries count
-  const { displayData, hiddenCount } = useMemo(() => {
+  // Build display data split into active (non-hidden) and hidden items
+  type DisplayItem = { date: string; path: StudyPath; dayData: DayData };
+  const {
+    activeData,
+    hiddenCount,
+    filteredHiddenCount,
+    revealedData,
+    filterCounts,
+  } = useMemo(() => {
     if (!activePaths || activePaths.length === 0)
-      return { displayData: [], hiddenCount: 0 };
+      return {
+        activeData: [] as DisplayItem[],
+        hiddenCount: 0,
+        filteredHiddenCount: 0,
+        revealedData: [] as DisplayItem[],
+        filterCounts: { all: 0, bookmarked: 0, hasNote: 0, noNote: 0 },
+      };
     const dates = viewingDate ? [viewingDate] : sortedDates;
-    const result: Array<{
-      date: string;
-      path: StudyPath;
-      dayData: DayData;
-    }> = [];
-    let hidden = 0;
+    const active: DisplayItem[] = [];
+    const allHidden: DisplayItem[] = [];
 
     dates.forEach((date) => {
       activePaths.forEach((path) => {
         const dayData = days[path]?.[date];
         if (dayData) {
           if (shouldHideDay(date, path)) {
-            hidden++;
+            allHidden.push({ date, path, dayData });
           } else {
-            result.push({ date, path, dayData });
+            active.push({ date, path, dayData });
           }
         }
       });
     });
 
-    return { displayData: result, hiddenCount: hidden };
-  }, [viewingDate, sortedDates, activePaths, days, shouldHideDay]);
+    // Apply filter
+    const filtered =
+      hiddenFilter === "all"
+        ? allHidden
+        : allHidden.filter((item) => {
+            if (hiddenFilter === "bookmarked")
+              return hasDayBookmarks(bookmarks, item.path, item.date);
+            if (hiddenFilter === "hasNote")
+              return !!summaries[`${item.path}:${item.date}`];
+            if (hiddenFilter === "noNote")
+              return !summaries[`${item.path}:${item.date}`];
+            return true;
+          });
+
+    // Paginate
+    const revealed = showHidden ? filtered.slice(0, revealLimit) : [];
+
+    // Compute filter counts only when toolbar is expanded
+    const counts = showHidden
+      ? {
+          all: allHidden.length,
+          bookmarked: allHidden.filter((i) =>
+            hasDayBookmarks(bookmarks, i.path, i.date),
+          ).length,
+          hasNote: allHidden.filter((i) => !!summaries[`${i.path}:${i.date}`])
+            .length,
+          noNote: allHidden.filter((i) => !summaries[`${i.path}:${i.date}`])
+            .length,
+        }
+      : { all: allHidden.length, bookmarked: 0, hasNote: 0, noNote: 0 };
+
+    return {
+      activeData: active,
+      hiddenCount: allHidden.length,
+      filteredHiddenCount: filtered.length,
+      revealedData: revealed,
+      filterCounts: counts,
+    };
+  }, [
+    viewingDate,
+    sortedDates,
+    activePaths,
+    days,
+    shouldHideDay,
+    showHidden,
+    revealLimit,
+    hiddenFilter,
+    bookmarks,
+    summaries,
+  ]);
 
   // Handle calendar button click — always opens the calendar
   const handleCalendarClick = useCallback(() => {
@@ -457,22 +517,14 @@ export default function HomePage() {
               calData.ref,
             );
 
-            // Use cached Hebrew dates if available, otherwise fetch
-            let heDate = calData.heDate;
-            let enDate = calData.enDate;
-            if (!heDate || !enDate) {
-              const dateResult = await fetchHebrewDate(selectedDate);
-              heDate = dateResult?.he;
-              enDate = dateResult?.en;
-            }
-
             setDayData(path, selectedDate, {
               he: calData.he,
               en: calData.en,
               ref: calData.ref,
+              refs: "refs" in calData ? calData.refs : undefined,
               count: halakhot.length,
-              heDate,
-              enDate,
+              heDate: calData.heDate,
+              enDate: calData.enDate,
               texts: halakhot,
               chapterBreaks,
             });
@@ -643,11 +695,12 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* All complete message - shown when all content is hidden */}
+        {/* All complete message - shown when all active content is hidden */}
         {hasCompletedSetup &&
           !isLoading &&
           hasAnyData &&
-          displayData.length === 0 &&
+          activeData.length === 0 &&
+          hiddenCount === 0 &&
           !viewingDate && (
             <div
               className="text-center py-12 px-4"
@@ -669,9 +722,9 @@ export default function HomePage() {
             </div>
           )}
 
-        {/* Hide real halacha cards during tutorial */}
+        {/* Active (non-hidden) day groups */}
         {!isTutorialActive &&
-          displayData.map(({ date, path, dayData }) => (
+          activeData.map(({ date, path, dayData }) => (
             <DayGroup
               key={`${path}:${date}`}
               date={date}
@@ -684,47 +737,167 @@ export default function HomePage() {
             />
           ))}
 
-        {/* Hidden entries indicator */}
+        {/* Hidden entries toolbar — positioned ABOVE revealed items, sticky when expanded */}
         {!isTutorialActive && hiddenCount > 0 && !viewingDate && (
-          <button
-            onClick={() => setSettingsOpen(true)}
-            className="w-full mt-4 px-4 py-3 bg-[var(--color-surface-hover)] border border-[var(--color-surface-border)] rounded-xl hover:bg-[var(--color-surface-border)]/50 transition-colors flex items-center justify-center gap-2"
+          <div
+            className={`mt-4 ${
+              showHidden
+                ? "sticky z-20 mb-4 bg-[var(--color-surface)] shadow-md border border-[var(--color-surface-border)] rounded-xl"
+                : ""
+            }`}
+            style={
+              showHidden
+                ? { top: "var(--daygroup-sticky-top, 120px)" }
+                : undefined
+            }
             dir={isHebrew ? "rtl" : "ltr"}
           >
-            <svg
-              className="w-4 h-4 text-[var(--color-text-muted)]"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+            {/* Toggle row */}
+            <button
+              onClick={() => {
+                setShowHidden((prev) => {
+                  if (prev) {
+                    setRevealLimit(20);
+                    setHiddenFilter("all");
+                  }
+                  return !prev;
+                });
+              }}
+              className={`w-full px-4 py-3 transition-colors flex items-center justify-center gap-2 ${
+                showHidden
+                  ? "rounded-t-xl hover:bg-[var(--color-surface-hover)]"
+                  : "bg-[var(--color-surface-hover)] border border-[var(--color-surface-border)] rounded-xl hover:bg-[var(--color-surface-border)]/50"
+              }`}
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
-              />
-            </svg>
-            <span className="text-sm text-[var(--color-text-muted)]">
-              {t("messages.hiddenEntries", { count: hiddenCount })}
-            </span>
-            <span className="text-xs text-[var(--color-text-muted)]">
-              · {t("messages.tapToShow")}
-            </span>
-          </button>
+              {showHidden ? (
+                <svg
+                  className="w-4 h-4 text-[var(--color-text-muted)]"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                  />
+                </svg>
+              ) : (
+                <svg
+                  className="w-4 h-4 text-[var(--color-text-muted)]"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+                  />
+                </svg>
+              )}
+              <span className="text-sm text-[var(--color-text-muted)]">
+                {showHidden
+                  ? t("messages.shownEntries", { count: hiddenCount })
+                  : t("messages.hiddenEntries", { count: hiddenCount })}
+              </span>
+              <span className="text-xs text-[var(--color-text-muted)]">
+                ·{" "}
+                {showHidden ? t("messages.tapToHide") : t("messages.tapToShow")}
+              </span>
+            </button>
+
+            {/* Filter chips row — only when expanded */}
+            {showHidden && (
+              <div className="px-3 pb-3 pt-1 flex gap-2 overflow-x-auto">
+                {(
+                  [
+                    { key: "all" as const, label: t("messages.filterAll") },
+                    {
+                      key: "bookmarked" as const,
+                      label: t("messages.filterBookmarked"),
+                    },
+                    {
+                      key: "hasNote" as const,
+                      label: t("messages.filterHasNote"),
+                    },
+                    {
+                      key: "noNote" as const,
+                      label: t("messages.filterNoNote"),
+                    },
+                  ] as const
+                )
+                  .filter(({ key }) => key === "all" || filterCounts[key] > 0)
+                  .map(({ key, label }) => (
+                    <button
+                      key={key}
+                      onClick={() => {
+                        setHiddenFilter(key);
+                        setRevealLimit(20);
+                      }}
+                      className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                        hiddenFilter === key
+                          ? "bg-[var(--color-primary)] text-white"
+                          : "bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] border border-[var(--color-surface-border)] hover:bg-[var(--color-surface-border)]"
+                      }`}
+                    >
+                      {label} ({filterCounts[key]})
+                    </button>
+                  ))}
+              </div>
+            )}
+          </div>
         )}
+
+        {/* Revealed hidden day groups */}
+        {!isTutorialActive &&
+          revealedData.map(({ date, path, dayData }) => (
+            <DayGroup
+              key={`hidden:${path}:${date}`}
+              date={date}
+              dayData={dayData}
+              studyPath={path}
+              textLanguage={textLanguage}
+              autoMarkPrevious={autoMarkPrevious}
+              defaultOpen={false}
+              showPathBadge={(activePaths?.length ?? 0) > 1}
+            />
+          ))}
+
+        {/* Show more button — when there are more filtered hidden items to reveal */}
+        {!isTutorialActive &&
+          showHidden &&
+          filteredHiddenCount > revealedData.length && (
+            <button
+              onClick={() => setRevealLimit((prev) => prev + 20)}
+              className="w-full mt-4 px-4 py-3 bg-[var(--color-surface-hover)] border border-[var(--color-surface-border)] rounded-xl hover:bg-[var(--color-surface-border)]/50 transition-colors text-sm text-[var(--color-text-muted)]"
+            >
+              {t("messages.showMore", {
+                count: filteredHiddenCount - revealedData.length,
+              })}
+            </button>
+          )}
 
         {/* Journal button - shows when user has saved summaries */}
         {!isTutorialActive && summaryCount > 0 && (
           <button
             onClick={() => setShowSummaries(true)}
-            className="w-full mt-6 px-4 py-3 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl hover:from-indigo-100 hover:to-purple-100 transition-colors flex items-center justify-center gap-2"
+            className="w-full mt-6 px-4 py-3 bg-[var(--color-primary)]/8 border border-[var(--color-primary)]/20 rounded-xl hover:bg-[var(--color-primary)]/12 transition-colors flex items-center justify-center gap-2"
             dir={isHebrew ? "rtl" : "ltr"}
           >
             <span className="text-xl">💭</span>
-            <span className="font-medium text-indigo-700">
+            <span className="font-medium text-[var(--color-primary-dark)]">
               {t("summary.viewAll")}
             </span>
-            <span className="text-xs text-indigo-400">
+            <span className="text-xs text-[var(--color-primary)] opacity-60">
               {t("summary.entries", {
                 count: summaryCount,
               })}

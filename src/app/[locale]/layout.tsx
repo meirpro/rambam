@@ -77,7 +77,6 @@ export default async function LocaleLayout({
         <meta httpEquiv="Content-Language" content="he, en" />
         {/* Preconnect to external resources for faster loading */}
         <link rel="preconnect" href="https://www.sefaria.org" />
-        <link rel="preconnect" href="https://www.hebcal.com" />
       </head>
       <body
         className="font-sans antialiased min-h-screen"

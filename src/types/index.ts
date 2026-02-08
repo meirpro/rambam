@@ -2,7 +2,15 @@
 export type StudyPath = "rambam3" | "rambam1" | "mitzvot";
 
 // Theme options
-export type ThemeId = "teal" | "sky" | "lavender" | "rose" | "sage" | "dark";
+export type ThemeId =
+  | "teal"
+  | "sky"
+  | "lavender"
+  | "rose"
+  | "sage"
+  | "dark"
+  | "light"
+  | "oled";
 export type HeaderStyle = "minimal" | "glass";
 export type CardStyle = "list" | "cards";
 export type ContentWidth = "narrow" | "medium" | "full";
@@ -125,6 +133,8 @@ export interface Bookmark {
   titleHe: string; // Cached for list display
   titleEn?: string;
   ref: string; // Sefaria reference
+  textHe?: string; // Full Hebrew text of this halakha (for offline/export)
+  textEn?: string; // Full English text of this halakha (for offline/export)
 }
 
 // Map of bookmark ID to Bookmark

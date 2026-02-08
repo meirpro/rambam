@@ -5,7 +5,7 @@ import { useTranslations, useLocale } from "next-intl";
 import { useStats } from "@/hooks/useStats";
 import { useLocationStore } from "@/stores/locationStore";
 import { useAppStore, isHalakhaDone } from "@/stores/appStore";
-import type { StudyPath } from "@/types";
+import type { StudyPath, ContentWidth, HeaderStyle } from "@/types";
 
 interface StatsBarProps {
   /** Optional selected date to show per-path breakdown */
@@ -25,6 +25,9 @@ export function StatsBar({ selectedDate }: StatsBarProps = {}) {
   const activePaths = useAppStore((state) => state.activePaths) ?? ["rambam3"];
   const days = useAppStore((state) => state.days);
   const done = useAppStore((state) => state.done);
+  const contentWidth = useAppStore((s) => s.contentWidth) as ContentWidth;
+  const headerStyle = useAppStore((s) => s.headerStyle) as HeaderStyle;
+  const isGlass = headerStyle === "glass";
 
   // Scroll direction detection for hide/show behavior
   const [isVisible, setIsVisible] = useState(true);
@@ -72,12 +75,17 @@ export function StatsBar({ selectedDate }: StatsBarProps = {}) {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const baseClasses = `
-    bg-[var(--color-surface-hover)] border-b-2 border-[var(--color-surface-border)]
-    sticky top-[60px] z-[100] transition-transform duration-300
-    ${isVisible ? "translate-y-0" : "-translate-y-full"}
-  `;
-  const innerClasses = "px-4 py-3 flex justify-around gap-2";
+  const surfaceBg = isGlass
+    ? "bg-[var(--color-surface-glass)] backdrop-blur-xl"
+    : "bg-[var(--color-surface-hover)]";
+  const baseClasses = `${surfaceBg} border-b-2 border-[var(--color-surface-border)] sticky top-[60px] z-[100] transition-transform duration-300 ${isVisible ? "translate-y-0" : "-translate-y-full"}`;
+  const widthClass =
+    contentWidth === "narrow"
+      ? "max-w-2xl"
+      : contentWidth === "medium"
+        ? "max-w-4xl"
+        : "";
+  const innerClasses = `px-4 py-3 flex justify-around gap-2 mx-auto ${widthClass}`;
 
   // Compute per-path completion for selected date
   const getPathCompletion = (path: StudyPath, date: string) => {
@@ -147,16 +155,10 @@ export function StatsBar({ selectedDate }: StatsBarProps = {}) {
 
   // Per-path breakdown view when viewing a specific date
   if (selectedDate && activePaths.length > 0) {
-    const pathBreakdownClasses = `
-      bg-[var(--color-surface-hover)] border-b-2 border-[var(--color-surface-border)]
-      sticky top-[60px] z-[100] transition-transform duration-300
-      ${isVisible ? "translate-y-0" : "-translate-y-full"}
-    `;
-
     return (
-      <div ref={statsBarRef} className={pathBreakdownClasses}>
+      <div ref={statsBarRef} className={baseClasses}>
         <div
-          className="px-4 py-2 flex flex-wrap justify-center gap-3"
+          className={`px-4 py-2 flex flex-wrap justify-center gap-3 mx-auto ${widthClass}`}
           dir={isHebrew ? "rtl" : "ltr"}
         >
           {activePaths.map((path) => {

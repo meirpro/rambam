@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, useRef, useMemo } from "react";
+import { useCallback, useState, useRef, useMemo, useEffect } from "react";
 import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter, usePathname } from "next/navigation";
@@ -13,6 +13,7 @@ import {
   parseImportFile,
   importData,
 } from "@/services/dataExport";
+import { getDatabaseStats, clearTextCache } from "@/services/database";
 import { getLocalDate } from "@/lib/dates";
 import { Button } from "@/components/ui/Button";
 import { Toggle } from "@/components/ui/Toggle";
@@ -101,6 +102,13 @@ function Chevron({ expanded, isRTL }: { expanded: boolean; isRTL: boolean }) {
       <path d="M1 1l5 5-5 5" />
     </svg>
   );
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return "0 B";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function SettingsGroup({
@@ -215,6 +223,10 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
   const setHeaderStyle = useAppStore((state) => state.setHeaderStyle);
   const setCardStyle = useAppStore((state) => state.setCardStyle);
   const setContentWidth = useAppStore((state) => state.setContentWidth);
+  const textRetentionDays = useAppStore((state) => state.textRetentionDays);
+  const setTextRetentionDays = useAppStore(
+    (state) => state.setTextRetentionDays,
+  );
   const resetPath = useAppStore((state) => state.resetPath);
   const resetAll = useAppStore((state) => state.resetAll);
 
@@ -251,11 +263,78 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
     "idle" | "sending" | "success" | "error"
   >("idle");
 
+  const [storageStats, setStorageStats] = useState<{
+    doneCount: number;
+    bookmarksCount: number;
+    summariesCount: number;
+    daysCount: number;
+    lsSize: number;
+    textsCount: number;
+    calendarCount: number;
+    totalEstimate: number;
+  } | null>(null);
+
   const toggleExpand = (key: string) =>
     setExpanded((prev) => (prev === key ? null : key));
 
   // Tutorial
   const { resetTutorial, isActive, showWhatsNew, hasNewStages } = useTutorial();
+
+  // Load storage stats when expanded
+  const loadStorageStats = useCallback(async () => {
+    try {
+      const state = useAppStore.getState();
+      const doneCount = Object.keys(state.done).length;
+      const bookmarksCount = Object.keys(state.bookmarks).length;
+      const summariesCount = Object.keys(state.summaries).length;
+      let daysCount = 0;
+      for (const pathDays of Object.values(state.days)) {
+        daysCount += Object.keys(pathDays).length;
+      }
+
+      const lsItem = localStorage.getItem("rambam-app-storage") || "";
+      const lsSize = new Blob([lsItem]).size;
+
+      let textsCount = 0,
+        calendarCount = 0;
+      try {
+        const dbStats = await getDatabaseStats();
+        textsCount = dbStats.textsCount;
+        calendarCount = dbStats.calendarCount;
+      } catch {
+        // IndexedDB may not be available
+      }
+
+      let totalEstimate = lsSize;
+      try {
+        if (navigator.storage?.estimate) {
+          const est = await navigator.storage.estimate();
+          if (est.usage) totalEstimate = est.usage;
+        }
+      } catch {
+        // Fallback to localStorage size
+      }
+
+      setStorageStats({
+        doneCount,
+        bookmarksCount,
+        summariesCount,
+        daysCount,
+        lsSize,
+        textsCount,
+        calendarCount,
+        totalEstimate,
+      });
+    } catch {
+      // Silent failure
+    }
+  }, []);
+
+  useEffect(() => {
+    if (expanded === "storage") {
+      loadStorageStats();
+    }
+  }, [expanded, loadStorageStats]);
 
   // Switch UI language (locale)
   const handleSwitchLocale = useCallback(() => {
@@ -333,6 +412,21 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
       resetAll();
     }
   }, [resetAll, tMessages, confirm]);
+
+  const handleClearCache = useCallback(async () => {
+    const confirmed = await confirm({
+      message: t("storage.clearCacheConfirm"),
+      variant: "danger",
+    });
+    if (confirmed) {
+      try {
+        await clearTextCache();
+        await loadStorageStats();
+      } catch {
+        // Silent failure
+      }
+    }
+  }, [confirm, t, loadStorageStats]);
 
   const handleSendFeedback = useCallback(async () => {
     if (!feedbackText.trim() || feedbackStatus === "sending") return;
@@ -437,6 +531,16 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
       label: isHebrew ? "כהה" : "Dark",
       color: THEMES.dark.colors["--color-primary"],
     },
+    {
+      id: "light",
+      label: isHebrew ? "בהיר" : "Light",
+      color: THEMES.light.colors["--color-primary"],
+    },
+    {
+      id: "oled",
+      label: "OLED",
+      color: THEMES.oled.colors["--color-primary"],
+    },
   ];
 
   // Latest changelog version
@@ -485,7 +589,7 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
               onClick={() => toggleExpand("theme")}
             >
               {expanded === "theme" && (
-                <div className="flex gap-3 justify-center pt-1">
+                <div className="flex flex-wrap gap-3 justify-center pt-1">
                   {themeOptions.map((opt) => (
                     <button
                       key={opt.id}
@@ -514,29 +618,18 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
               )}
             </SettingRow>
 
-            {/* Header style */}
+            {/* Glass effect */}
             <SettingRow
-              label={isHebrew ? "סגנון כותרת" : "Header Style"}
-              chevron
-              onClick={() => toggleExpand("headerStyle")}
-            >
-              {expanded === "headerStyle" && (
-                <Toggle
-                  options={[
-                    {
-                      value: "minimal" as const,
-                      label: isHebrew ? "מינימלי" : "Minimal",
-                    },
-                    {
-                      value: "glass" as const,
-                      label: isHebrew ? "זכוכית" : "Glass",
-                    },
-                  ]}
-                  value={headerStyle}
-                  onChange={(val) => setHeaderStyle(val as HeaderStyle)}
+              label={isHebrew ? "אפקט זכוכית" : "Glass Effect"}
+              control={
+                <ToggleSwitch
+                  checked={headerStyle === "glass"}
+                  onChange={(checked) =>
+                    setHeaderStyle(checked ? "glass" : "minimal")
+                  }
                 />
-              )}
-            </SettingRow>
+              }
+            />
 
             {/* Card style */}
             <SettingRow
@@ -775,6 +868,33 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
                     </p>
                   </div>
                   <PrefetchButton />
+                </div>
+              )}
+            </SettingRow>
+
+            <SettingRow
+              label={t("textRetention")}
+              value={t(`textRetentionOptions.${textRetentionDays}`)}
+              chevron
+              onClick={() => toggleExpand("textRetention")}
+            >
+              {expanded === "textRetention" && (
+                <div className="space-y-2">
+                  <select
+                    value={textRetentionDays}
+                    onChange={(e) =>
+                      setTextRetentionDays(parseInt(e.target.value))
+                    }
+                    className="w-full p-2.5 border border-[var(--color-surface-border)] rounded-lg bg-[var(--color-surface)] text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                  >
+                    <option value={7}>{t("textRetentionOptions.7")}</option>
+                    <option value={14}>{t("textRetentionOptions.14")}</option>
+                    <option value={30}>{t("textRetentionOptions.30")}</option>
+                    <option value={0}>{t("textRetentionOptions.0")}</option>
+                  </select>
+                  <p className="text-xs text-[var(--color-text-muted)]">
+                    {t("textRetentionHint")}
+                  </p>
                 </div>
               )}
             </SettingRow>
@@ -1157,50 +1277,191 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
 
           {/* ── Danger Zone ── */}
           <SettingsGroup title={isHebrew ? "אזור מסוכן" : "Danger Zone"} danger>
-            <div
-              className="px-4 py-3 flex items-center gap-2 cursor-pointer text-red-500 font-medium text-sm active:bg-red-100"
-              onClick={() => toggleExpand("danger")}
-              role="button"
-              tabIndex={0}
-            >
-              <svg
-                width="7"
-                height="12"
-                viewBox="0 0 7 12"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className={`transition-transform ${
-                  expanded === "danger"
-                    ? "rotate-90"
-                    : isHebrew
-                      ? "rotate-180"
-                      : ""
-                }`}
+            {/* Storage Usage */}
+            <div>
+              <div
+                className="px-4 py-3 flex items-center justify-between cursor-pointer active:bg-red-100"
+                onClick={() => toggleExpand("storage")}
+                role="button"
+                tabIndex={0}
               >
-                <path d="M1 1l5 5-5 5" />
-              </svg>
-              <span>
-                {isHebrew ? "הצג אפשרויות איפוס" : "Show reset options"}
-              </span>
-            </div>
-            {expanded === "danger" && (
-              <div className="px-4 pb-3 pt-1">
-                <p className="text-sm text-[var(--color-text-muted)] text-center mb-2">
-                  ⚠️ {t("resetWarning")}
-                </p>
-                <div className="flex gap-2">
-                  <Button variant="danger" fullWidth onClick={handleResetPath}>
-                    {t("resetPath")}
-                  </Button>
-                  <Button variant="danger" fullWidth onClick={handleResetAll}>
-                    {t("resetAll")}
-                  </Button>
+                <div className="flex items-center gap-2 text-red-500 font-medium text-sm">
+                  <svg
+                    width="7"
+                    height="12"
+                    viewBox="0 0 7 12"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className={`transition-transform ${
+                      expanded === "storage"
+                        ? "rotate-90"
+                        : isHebrew
+                          ? "rotate-180"
+                          : ""
+                    }`}
+                  >
+                    <path d="M1 1l5 5-5 5" />
+                  </svg>
+                  <span>{t("storage.title")}</span>
                 </div>
+                {storageStats && (
+                  <span className="text-xs text-red-400 font-mono tabular-nums">
+                    {formatBytes(storageStats.totalEstimate)}
+                  </span>
+                )}
               </div>
-            )}
+              {expanded === "storage" && (
+                <div className="px-4 pb-3">
+                  {storageStats ? (
+                    <div className="space-y-3">
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-red-400">
+                            {t("storage.completionRecords")}
+                          </span>
+                          <span className="text-red-600 font-mono tabular-nums">
+                            {storageStats.doneCount.toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-red-400">
+                            {t("storage.bookmarks")}
+                          </span>
+                          <span className="text-red-600 font-mono tabular-nums">
+                            {storageStats.bookmarksCount.toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-red-400">
+                            {t("storage.summaries")}
+                          </span>
+                          <span className="text-red-600 font-mono tabular-nums">
+                            {storageStats.summariesCount.toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-red-400">
+                            {t("storage.dayMetadata")}
+                          </span>
+                          <span className="text-red-600 font-mono tabular-nums">
+                            {storageStats.daysCount.toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="border-t border-red-200 pt-2 space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-red-400">
+                            {t("storage.textCache")}
+                          </span>
+                          <span className="text-red-600 font-mono tabular-nums">
+                            {storageStats.textsCount.toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-red-400">
+                            {t("storage.calendarCache")}
+                          </span>
+                          <span className="text-red-600 font-mono tabular-nums">
+                            {storageStats.calendarCount.toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="border-t border-red-200 pt-2 space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-red-400">
+                            {t("storage.settingsProgress")}
+                          </span>
+                          <span className="text-red-600 font-mono tabular-nums">
+                            {formatBytes(storageStats.lsSize)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-xs font-medium">
+                          <span className="text-red-600">
+                            {t("storage.total")}
+                          </span>
+                          <span className="text-red-700 font-mono tabular-nums">
+                            {formatBytes(storageStats.totalEstimate)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {(storageStats.textsCount > 0 ||
+                        storageStats.calendarCount > 0) && (
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          fullWidth
+                          onClick={handleClearCache}
+                        >
+                          {t("storage.clearCache")}
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-red-400 text-center py-1">
+                      {isHebrew ? "טוען..." : "Loading..."}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Reset options */}
+            <div>
+              <div
+                className="px-4 py-3 flex items-center gap-2 cursor-pointer text-red-500 font-medium text-sm active:bg-red-100"
+                onClick={() => toggleExpand("danger")}
+                role="button"
+                tabIndex={0}
+              >
+                <svg
+                  width="7"
+                  height="12"
+                  viewBox="0 0 7 12"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={`transition-transform ${
+                    expanded === "danger"
+                      ? "rotate-90"
+                      : isHebrew
+                        ? "rotate-180"
+                        : ""
+                  }`}
+                >
+                  <path d="M1 1l5 5-5 5" />
+                </svg>
+                <span>
+                  {isHebrew ? "הצג אפשרויות איפוס" : "Show reset options"}
+                </span>
+              </div>
+              {expanded === "danger" && (
+                <div className="px-4 pb-3 pt-1">
+                  <p className="text-sm text-[var(--color-text-muted)] text-center mb-2">
+                    ⚠️ {t("resetWarning")}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="danger"
+                      fullWidth
+                      onClick={handleResetPath}
+                    >
+                      {t("resetPath")}
+                    </Button>
+                    <Button variant="danger" fullWidth onClick={handleResetAll}>
+                      {t("resetAll")}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
           </SettingsGroup>
         </div>
 

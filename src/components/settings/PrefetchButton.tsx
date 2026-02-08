@@ -5,11 +5,8 @@ import { useLocale, useTranslations } from "next-intl";
 import { useAppStore } from "@/stores/appStore";
 import { useLocationStore } from "@/stores/locationStore";
 import { getJewishDate, formatDateString } from "@/lib/dates";
-import {
-  prefetchWeekAhead,
-  canPrefetch,
-  type PrefetchProgress,
-} from "@/services/prefetch";
+import { canPrefetch, type PrefetchProgress } from "@/services/prefetch";
+import { fetchCalendar, fetchHalakhot } from "@/services/sefaria";
 import type { StudyPath } from "@/types";
 
 const HE_DOW = ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"];
@@ -96,30 +93,71 @@ export function PrefetchButton() {
   const totalCount = dateStatuses.length;
   const allDownloaded = downloadedCount === totalCount;
 
-  // Force download handler
+  const setDayData = useAppStore((state) => state.setDayData);
+
+  // Force download handler — fetches data AND updates Zustand store
   const handleDownload = useCallback(async () => {
     if (!(await canPrefetch()) || downloading) return;
 
     setDownloading(true);
     setProgress(null);
 
+    const totalItems = (daysAhead + 1) * activePaths.length;
+    let completed = 0;
+    let failed = 0;
+
     try {
-      // Download for all active paths
       for (const path of activePaths as StudyPath[]) {
-        await prefetchWeekAhead(
-          today,
-          path,
-          (p) => setProgress(p),
-          daysAhead + 1,
+        const startDate = new Date(
+          parseInt(today.slice(0, 4)),
+          parseInt(today.slice(5, 7)) - 1,
+          parseInt(today.slice(8, 10)),
         );
+
+        for (let i = 0; i <= daysAhead; i++) {
+          const d = new Date(startDate);
+          d.setDate(d.getDate() + i);
+          const dateStr = formatDateString(d);
+
+          setProgress({
+            total: totalItems,
+            completed,
+            failed,
+            currentDate: dateStr,
+            status: "prefetching",
+          });
+
+          try {
+            const calData = await fetchCalendar(dateStr, path);
+            const { halakhot, chapterBreaks } = await fetchHalakhot(
+              calData.ref,
+            );
+
+            // Update Zustand store so pills turn green
+            setDayData(path, dateStr, {
+              he: calData.he,
+              en: calData.en,
+              ref: calData.ref,
+              refs: "refs" in calData ? calData.refs : undefined,
+              count: halakhot.length,
+              heDate: calData.heDate,
+              enDate: calData.enDate,
+              texts: halakhot,
+              chapterBreaks,
+            });
+
+            completed++;
+          } catch (error) {
+            console.error(`Prefetch failed for ${path}/${dateStr}:`, error);
+            failed++;
+          }
+        }
       }
-    } catch (error) {
-      console.error("Prefetch failed:", error);
     } finally {
       setDownloading(false);
       setProgress(null);
     }
-  }, [today, activePaths, daysAhead, downloading]);
+  }, [today, activePaths, daysAhead, downloading, setDayData]);
 
   const progressPercent = progress
     ? Math.round(

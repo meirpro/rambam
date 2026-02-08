@@ -230,12 +230,22 @@ const HalakhaCardInner = React.memo(function HalakhaCard({
     markThisAndPrevious,
   ]);
 
-  // Long press handler to open info sheet
+  // Long press / right-click handler to open info sheet
   const handleLongPress = useCallback(() => {
     if (dayData) {
       setShowInfoSheet(true);
     }
   }, [dayData]);
+
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      if (dayData) {
+        e.preventDefault();
+        setShowInfoSheet(true);
+      }
+    },
+    [dayData],
+  );
 
   const { handlers, state, style } = useSwipeGesture({
     onSwipeRight: handleSwipeRight,
@@ -248,10 +258,16 @@ const HalakhaCardInner = React.memo(function HalakhaCard({
   const swipeProgress = Math.min(Math.abs(state.deltaX) / SWIPE_THRESHOLD, 1);
   const isOverThreshold = Math.abs(state.deltaX) >= SWIPE_THRESHOLD;
 
-  // Determine what to show based on language setting
-  const showHebrew = textLanguage === "hebrew" || textLanguage === "both";
-  const showEnglish =
-    (textLanguage === "english" || textLanguage === "both") && halakha.en;
+  // Determine what to show based on language setting (with fallback).
+  // Decision: When English is requested but unavailable (Sefaria lacks translation
+  // or the English fetch failed), we fall back to Hebrew rather than showing an
+  // empty card. Hebrew text is almost always available since it's the primary source.
+  // The DayGroup component shows a separate amber banner for the missing language.
+  const wantsHebrew = textLanguage === "hebrew" || textLanguage === "both";
+  const wantsEnglish = textLanguage === "english" || textLanguage === "both";
+  const hasEnglish = !!halakha.en;
+  const showHebrew = wantsHebrew || (wantsEnglish && !hasEnglish);
+  const showEnglish = wantsEnglish && hasEnglish;
 
   // Note: We use dangerouslySetInnerHTML here because Sefaria API returns
   // HTML-formatted text with bold tags, small tags, etc. This is trusted
@@ -372,6 +388,7 @@ const HalakhaCardInner = React.memo(function HalakhaCard({
         `}
         style={style}
         {...handlers}
+        onContextMenu={handleContextMenu}
         data-index={index}
       >
         {/* Card content: inline number + text */}

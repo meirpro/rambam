@@ -107,6 +107,8 @@ export function HalakhaInfoSheet({
         dayData.he,
         dayData.en,
         dayData.ref,
+        halakhaText?.he,
+        halakhaText?.en,
       );
     }
   }, [
@@ -117,6 +119,7 @@ export function HalakhaInfoSheet({
     date,
     halakhaIndex,
     dayData,
+    halakhaText,
   ]);
 
   const handleSaveNote = () => {
@@ -363,7 +366,7 @@ export function HalakhaInfoSheet({
               />
             ) : (
               <p className="text-sm text-[var(--color-text-muted)] italic">
-                {t("noTranslation")}
+                {t("translationFetchError")}
               </p>
             )}
           </div>

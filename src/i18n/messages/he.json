@@ -50,6 +50,28 @@
     "showWhatsNew": "הצג מה חדש",
     "daysAheadLabel": "ימים להורדה מראש",
     "daysAheadHint": "מספר ימים שיורדו אוטומטית לשימוש אופליין",
+    "textRetention": "שמירת טקסטים",
+    "textRetentionHint": "טקסטים ישנים יורדו מחדש בפתיחה",
+    "textRetentionOptions": {
+      "7": "שבוע",
+      "14": "שבועיים",
+      "30": "חודש",
+      "0": "שמור הכל"
+    },
+    "storage": {
+      "title": "אחסון",
+      "completionRecords": "רשומות השלמה",
+      "bookmarks": "סימניות",
+      "summaries": "הערות",
+      "dayMetadata": "נתוני ימים",
+      "textCache": "טקסטים מאוחסנים",
+      "calendarCache": "מטמון לוח לימוד",
+      "settingsProgress": "הגדרות והתקדמות",
+      "total": "סה״כ משוער",
+      "clearCache": "נקה מטמון טקסט",
+      "clearCacheConfirm": "לנקות את כל הטקסטים המאוחסנים? הם יורדו מחדש כשיהיה צורך.",
+      "cacheCleared": "המטמון נוקה"
+    },
     "feedback": {
       "title": "משוב",
       "sendFeedback": "שלח משוב",
@@ -158,7 +180,14 @@
     "allCompleteHint": "פריטים שהושלמו מוסתרים. ניתן לשנות זאת בהגדרות תחת \"הסתר שהושלמו\".",
     "openSettings": "פתח הגדרות",
     "hiddenEntries": "{count, plural, one {פריט אחד מוסתר} other {{count} פריטים מוסתרים}}",
-    "tapToShow": "לחץ להצגה"
+    "shownEntries": "{count, plural, one {פריט אחד מוצג} other {{count} פריטים מוצגים}}",
+    "tapToShow": "לחץ להצגה",
+    "tapToHide": "לחץ להסתרה",
+    "showMore": "הצג עוד {count}",
+    "filterAll": "הכל",
+    "filterBookmarked": "עם סימנייה",
+    "filterHasNote": "עם הערה",
+    "filterNoNote": "ללא הערה"
   },
   "dates": {
     "today": "היום",
@@ -183,7 +212,11 @@
     "downloadedStatus": "תאריכים שהורדו",
     "downloadNow": "הורד עכשיו",
     "autoDownloadHint": "תאריכים חסרים יורדו אוטומטית בפתיחת האפליקציה",
-    "allDownloaded": "כל התאריכים הורדו לשימוש אופליין"
+    "allDownloaded": "כל התאריכים הורדו לשימוש אופליין",
+    "offlineContent": "התוכן אינו זמין אופליין",
+    "retryLoad": "נסה שוב",
+    "downloadWhenOnline": "הורד כשיהיה חיבור",
+    "pinnedForDownload": "מסומן להורדה כשיהיה חיבור"
   },
   "update": {
     "appAvailable": "גרסה חדשה זמינה!",
@@ -225,6 +258,9 @@
     "showTranslation": "English",
     "showOriginal": "עברית",
     "noTranslation": "התרגום אינו זמין",
+    "translationFetchError": "לא ניתן לטעון את התרגום. נסה שוב כשתהיה מחובר.",
+    "englishUnavailable": "הטקסט באנגלית אינו זמין \u2014 מוצג בעברית",
+    "hebrewUnavailable": "הטקסט בעברית אינו זמין \u2014 מוצג באנגלית",
     "translationTitle": "תרגום לאנגלית",
     "originalTitle": "מקור בעברית"
   },
